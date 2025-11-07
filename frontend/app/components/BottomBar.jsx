@@ -8,7 +8,7 @@ export default function MobileBottomBar() {
   const { isDark } = useTheme();
   const [activeTab, setActiveTab] = useState('home');
 
-  const bgColor = isDark ? "bg-neutral-950 border-neutral-800" : "bg-white border-gray-200";
+  const bgColor = isDark ? "bg-neutral-950 border-white" : "bg-white border-blue-500";
   const textColor = isDark ? "text-gray-400" : "text-gray-500";
   const activeColor = isDark ? "text-white" : "text-black";
 
@@ -21,7 +21,7 @@ export default function MobileBottomBar() {
 
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 z-50">
-      <div className={`${bgColor} border-t rounded-t-3xl shadow-lg`}>
+      <div className={`${bgColor} border-t-2 rounded-t-3xl shadow-lg`}>
         <div className="flex items-center justify-around px-6 py-4">
           {tabs.map((tab) => {
             const Icon = tab.icon;
