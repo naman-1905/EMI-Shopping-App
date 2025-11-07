@@ -10,6 +10,9 @@ import searchRouter from './apis/Search/api.js';
 const app = express();
 const port = 5000;
 
+// Global middleware for parsing JSON
+app.use(express.json());
+
 // Swagger setup
 const options = {
   definition: {
@@ -20,7 +23,7 @@ const options = {
       description: 'Backend API for EMI Shopping Application',
     },
   },
-  apis: ['./server.js', './apis/**/*.js'], // files to scan for annotations
+  apis: ['./server.js', './apis/**/*.js', './middleware/**/*.js'], // files to scan for annotations
 };
 
 const swaggerSpec = swaggerJsdoc(options);
