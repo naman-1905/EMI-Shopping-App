@@ -3,6 +3,7 @@
 import { Search, Heart, ShoppingBag, User, Moon, Sun, X } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useTheme } from '../providers/ThemeProviders';
+import Link from 'next/link';
 
 export default function Navbar() {
   const { isDark, toggleTheme } = useTheme();
@@ -51,9 +52,9 @@ export default function Navbar() {
           {/* Desktop View */}
           <div className="hidden md:flex items-center justify-between w-full">
             {/* Logo */}
-            <div className={`text-2xl font-bold ${textColor}`}>
+            <Link href="/" className={`text-2xl font-bold ${textColor} hover:opacity-80 transition-opacity`}>
               1Fi
-            </div>
+            </Link>
 
             {/* Center Search Bar - Expanded */}
             <div className={`absolute left-1/2 transform -translate-x-1/2 transition-all duration-300 ease-in-out ${isSearchOpen ? 'w-96 opacity-100' : 'w-0 opacity-0'}`}>
@@ -83,27 +84,30 @@ export default function Navbar() {
               >
                 {isSearchOpen ? <X /> : <Search />}
               </div>
-              <div
+              <Link
+                href="/wishlist"
                 className={`${iconClass} ${hoverClass} ${textColor}`}
                 onMouseEnter={() => setIsHovered('heart')}
                 onMouseLeave={() => setIsHovered(null)}
               >
                 <Heart />
-              </div>
-              <div
+              </Link>
+              <Link
+                href="/cart"
                 className={`${iconClass} ${hoverClass} ${textColor}`}
                 onMouseEnter={() => setIsHovered('bag')}
                 onMouseLeave={() => setIsHovered(null)}
               >
                 <ShoppingBag />
-              </div>
-              <div
+              </Link>
+              <Link
+                href="/profile"
                 className={`${iconClass} ${hoverClass} ${textColor}`}
                 onMouseEnter={() => setIsHovered('profile')}
                 onMouseLeave={() => setIsHovered(null)}
               >
                 <User />
-              </div>
+              </Link>
 
               {/* Theme Toggle */}
               <button
@@ -118,7 +122,9 @@ export default function Navbar() {
 
           {/* Mobile View */}
           <div className="md:hidden flex items-center justify-between w-full">
-            <div className={`text-2xl font-bold ${textColor}`}>1Fi</div>
+            <Link href="/home" className={`text-2xl font-bold ${textColor} hover:opacity-80 transition-opacity`}>
+              1Fi
+            </Link>
             <button
               onClick={toggleTheme}
               className={`${iconClass} ${hoverClass} ${textColor}`}
