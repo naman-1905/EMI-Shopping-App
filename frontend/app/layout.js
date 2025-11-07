@@ -1,5 +1,6 @@
 import { Geist, Titillium_Web } from "next/font/google";
 import "./globals.css";
+import { ThemeProvider } from "./providers/ThemeProviders";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,7 +24,9 @@ export default function RootLayout({ children }) {
       <body
         className={`${geistSans.variable} ${titilliumWeb.variable} antialiased`}
       >
-        {children}
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );
