@@ -3,6 +3,7 @@
 import { Home, Heart, ShoppingBag, User } from 'lucide-react';
 import { useState } from 'react';
 import { useTheme } from '../providers/ThemeProviders';
+import Link from 'next/link';
 
 export default function MobileBottomBar() {
   const { isDark } = useTheme();
@@ -13,10 +14,10 @@ export default function MobileBottomBar() {
   const activeColor = isDark ? "text-white" : "text-black";
 
   const tabs = [
-    { id: 'home', icon: Home, label: 'Home' },
-    { id: 'wishlist', icon: Heart, label: 'Wishlist' },
-    { id: 'cart', icon: ShoppingBag, label: 'Cart' },
-    { id: 'profile', icon: User, label: 'Profile' },
+    { id: 'home', icon: Home, label: 'Home', path: '/home' },
+    { id: 'wishlist', icon: Heart, label: 'Wishlist', path: '/wishlist' },
+    { id: 'cart', icon: ShoppingBag, label: 'Cart', path: '/cart' },
+    { id: 'profile', icon: User, label: 'Profile', path: '/profile' },
   ];
 
   return (
@@ -28,8 +29,9 @@ export default function MobileBottomBar() {
             const isActive = activeTab === tab.id;
 
             return (
-              <button
+              <Link
                 key={tab.id}
+                href={tab.path}
                 onClick={() => setActiveTab(tab.id)}
                 className="flex flex-col items-center gap-1 transition-all duration-200"
               >
@@ -55,7 +57,7 @@ export default function MobileBottomBar() {
                 >
                   {tab.label}
                 </span>
-              </button>
+              </Link>
             );
           })}
         </div>
