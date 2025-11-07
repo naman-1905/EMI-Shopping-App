@@ -6,6 +6,8 @@ import featuredRouter from './apis/Featured/api.js';
 import bestsellingRouter from './apis/Bestselling/api.js';
 import skuRouter from './apis/SKU/api.js';
 import searchRouter from './apis/Search/api.js';
+import signupRouter from './apis/Signup/api.js';
+import loginRouter from './apis/Login/api.js';
 
 const app = express();
 const port = 5000;
@@ -62,6 +64,12 @@ app.use('/api/sku', skuRouter);
 
 // Search API routes
 app.use('/api/search', searchRouter);
+
+// Signup API routes
+app.use('/api/signup', signupRouter);
+
+// Login API routes
+app.use('/api/login', loginRouter);
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
