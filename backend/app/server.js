@@ -5,6 +5,7 @@ import categoryRouter from './apis/Category/api.js';
 import featuredRouter from './apis/Featured/api.js';
 import bestsellingRouter from './apis/Bestselling/api.js';
 import skuRouter from './apis/SKU/api.js';
+import searchRouter from './apis/Search/api.js';
 
 const app = express();
 const port = 5000;
@@ -55,6 +56,9 @@ app.use('/api/bestselling', bestsellingRouter);
 
 // SKU API routes
 app.use('/api/sku', skuRouter);
+
+// Search API routes
+app.use('/api/search', searchRouter);
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
