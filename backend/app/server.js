@@ -2,6 +2,7 @@ import express from 'express';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJsdoc from 'swagger-jsdoc';
 import categoryRouter from './apis/Category/api.js';
+import featuredRouter from './apis/Featured/api.js';
 
 const app = express();
 const port = 5000;
@@ -43,6 +44,9 @@ app.get('/', (req, res) => {
 
 // Category API routes
 app.use('/api/category', categoryRouter);
+
+// Featured API routes
+app.use('/api/featured', featuredRouter);
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
