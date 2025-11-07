@@ -28,7 +28,7 @@ export default function CategoryCircles({ categories }) {
   // Updated color scheme
   const bgColor = isDark ? 'bg-black' : 'bg-white';
   const circleBorder = isDark ? 'border-gray-700' : 'border-gray-300';
-  const hoverBorder = isDark ? 'hover:border-white' : 'hover:border-gray-500';
+  const hoverBorder = isDark ? 'hover:border-white' : 'hover:border-blue-500';
   const selectedBorder = isDark ? 'border-white' : 'border-black';
   const labelColor = isDark ? 'text-white' : 'text-black';
   const unselectedLabelColor = isDark ? 'text-gray-400' : 'text-gray-600';
