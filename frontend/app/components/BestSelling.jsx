@@ -1,9 +1,11 @@
 "use client"
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useTheme } from '../providers/ThemeProviders';
 
 export default function BestSellingProducts({ selectedCategory }) {
   const { isDark } = useTheme();
+  const router = useRouter();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -37,6 +39,11 @@ export default function BestSellingProducts({ selectedCategory }) {
 
     fetchProducts();
   }, []);
+
+  // Navigate to product page
+  const handleProductClick = (skuId) => {
+    router.push(`/product/${skuId}`);
+  };
 
   // Filter products based on selected category
   const filteredProducts = selectedCategory === 'all' || !selectedCategory
@@ -115,6 +122,7 @@ export default function BestSellingProducts({ selectedCategory }) {
           {filteredProducts.map((product) => (
             <div
               key={product.sku_id}
+              onClick={() => handleProductClick(product.sku_id)}
               className="group cursor-pointer"
             >
               {/* Product Image */}
@@ -134,9 +142,6 @@ export default function BestSellingProducts({ selectedCategory }) {
 
               {/* Product Info */}
               <div className="space-y-1">
-                <p className={`text-xs ${subtextColor} uppercase tracking-wide`}>
-                  {product.sku_brand}
-                </p>
                 <h3 className={`text-sm md:text-base font-medium ${textColor} line-clamp-2`}>
                   {product.sku_name}
                 </h3>
