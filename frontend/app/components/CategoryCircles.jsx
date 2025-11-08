@@ -1,23 +1,68 @@
 'use client';
 
 import { useTheme } from '../providers/ThemeProviders';
+import { useState, useEffect } from 'react';
 
-export default function CategoryCircles({ selectedCategory, onCategorySelect, categories }) {
+export default function CategoryCircles({ selectedCategory, onCategorySelect }) {
   const { isDark } = useTheme();
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Default categories if none provided
-  const defaultCategories = [
-    { id: 0, name: 'All', image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400' },
-    { id: 1, name: 'Fashion', image: 'https://images.unsplash.com/photo-1445205170230-053b83016050?w=400' },
-    { id: 2, name: 'Footwear', image: 'https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=400' },
-    { id: 3, name: 'Outerwear', image: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=400' },
-    { id: 4, name: 'Accessories', image: 'https://images.unsplash.com/photo-1523170335258-f5ed11844a49?w=400' },
-    { id: 5, name: 'Sportswear', image: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=400' },
-  ];
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_SHOP_BACKEND_URL}/api/featured/categories`
+        );
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch categories');
+        }
 
-  const displayCategories = categories || defaultCategories;
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+          // Group products by category and get one image per category
+          const categoryMap = new Map();
+          
+          result.data.forEach(item => {
+            const categoryName = item.category;
+            if (!categoryMap.has(categoryName) && item.sku_image_handler?.featured_image_url) {
+              categoryMap.set(categoryName, {
+                id: categoryName.toLowerCase(), // Keep lowercase for matching
+                name: categoryName.split(' ')
+                  .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                  .join(' '),
+                image: item.sku_image_handler.featured_image_url
+              });
+            }
+          });
 
-  // Updated color scheme
+          // Convert to array and add "All" category at the beginning
+          const categoriesArray = [
+            {
+              id: 'all',
+              name: 'All',
+              image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400'
+            },
+            ...Array.from(categoryMap.values())
+          ];
+
+          setCategories(categoriesArray);
+        }
+        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching categories:', err);
+        setError(err.message);
+        setLoading(false);
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
+  // Color scheme
   const bgColor = isDark ? 'bg-black' : 'bg-white';
   const circleBorder = isDark ? 'border-gray-700' : 'border-gray-200';
   const hoverBorder = isDark ? 'hover:border-white' : 'hover:border-gray-900';
@@ -25,12 +70,41 @@ export default function CategoryCircles({ selectedCategory, onCategorySelect, ca
   const labelColor = isDark ? 'text-white' : 'text-gray-900';
   const unselectedLabelColor = isDark ? 'text-gray-400' : 'text-gray-600';
 
+  if (loading) {
+    return (
+      <div className={`w-full py-8 ${bgColor} border-b ${isDark ? 'border-gray-800' : 'border-gray-200'}`}>
+        <div className="flex items-center justify-center gap-6 py-4">
+          <div className="animate-pulse flex gap-6">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="flex flex-col items-center gap-3">
+                <div className={`w-20 h-20 rounded-full ${isDark ? 'bg-gray-800' : 'bg-gray-200'}`}></div>
+                <div className={`h-4 w-16 rounded ${isDark ? 'bg-gray-800' : 'bg-gray-200'}`}></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={`w-full py-8 ${bgColor} border-b ${isDark ? 'border-gray-800' : 'border-gray-200'}`}>
+        <div className="flex items-center justify-center">
+          <p className={`text-sm ${isDark ? 'text-red-400' : 'text-red-600'}`}>
+            Error loading categories: {error}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`w-full py-8 ${bgColor} border-b ${isDark ? 'border-gray-800' : 'border-gray-200'}`}>
       {/* Desktop View - Single Row with Scroll */}
       <div className="hidden md:block">
         <div className="flex items-center justify-center gap-6 overflow-x-auto py-4 scrollbar-hide">
-          {displayCategories.map((category) => {
+          {categories.map((category) => {
             const isSelected = selectedCategory === category.id;
             
             return (
@@ -68,7 +142,7 @@ export default function CategoryCircles({ selectedCategory, onCategorySelect, ca
       {/* Mobile View - Grid Layout */}
       <div className="md:hidden">
         <div className="grid grid-cols-3 gap-4 justify-items-center px-4">
-          {displayCategories.map((category) => {
+          {categories.map((category) => {
             const isSelected = selectedCategory === category.id;
             
             return (
