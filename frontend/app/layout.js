@@ -1,6 +1,7 @@
 import { Geist, Titillium_Web } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "./providers/ThemeProviders";
+import MobileBottomBar from "./components/BottomBar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,6 +27,7 @@ export default function RootLayout({ children }) {
       >
         <ThemeProvider>
           {children}
+          <MobileBottomBar />
         </ThemeProvider>
       </body>
     </html>
