@@ -1,9 +1,12 @@
 "use client"
-import { useState } from 'react';
-import { ShoppingBag, Plus, Minus, Trash2, CheckCircle, MapPin, CreditCard, Edit2 } from 'lucide-react';
-
-// Mock theme hook
-const useTheme = () => ({ isDark: false });
+import { useState, useEffect } from 'react';
+import { ShoppingBag, Loader2 } from 'lucide-react';
+import { useTheme } from '../providers/ThemeProviders';
+import LoginPromptBox from './LoginModal';
+import CartItem from './CartItem';
+import DeliveryAddress from './DeliveryAddress';
+import OrderSummary from './OrderSummary';
+import CheckoutSuccess from './CheckoutSuccess';
 
 // Mock router for demo
 const useRouter = () => ({ 
@@ -17,41 +20,13 @@ export default function Cart() {
   const { isDark } = useTheme();
   const router = useRouter();
   const [showCheckout, setShowCheckout] = useState(false);
-  const [cartItems, setCartItems] = useState([
-    {
-      id: 1,
-      name: 'Vita Serum',
-      price: 103,
-      originalPrice: 117,
-      image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=500',
-      category: 'Skincare',
-      quantity: 2,
-      selectedEMI: null,
-    },
-    {
-      id: 2,
-      name: 'Deep Breath',
-      price: 79,
-      originalPrice: 81,
-      image: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=500',
-      category: 'Wellness',
-      quantity: 1,
-      selectedEMI: null,
-    },
-    {
-      id: 3,
-      name: 'Green Tea Serum',
-      price: 95,
-      originalPrice: 110,
-      image: 'https://images.unsplash.com/photo-1570194065650-d99fb4a2a7c9?w=500',
-      category: 'Skincare',
-      quantity: 1,
-      selectedEMI: null,
-    },
-  ]);
+  const [cartItems, setCartItems] = useState([]);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // User address
-  const [userAddress, setUserAddress] = useState({
+  const [userAddress] = useState({
     name: 'John Doe',
     street: '123 Main Street',
     city: 'New York',
@@ -61,7 +36,63 @@ export default function Cart() {
     phone: '+1 (555) 123-4567'
   });
 
-  const [expandedEMI, setExpandedEMI] = useState(null);
+  useEffect(() => {
+    checkAuthAndFetchCart();
+  }, []);
+
+  const checkAuthAndFetchCart = async () => {
+    try {
+      // Check for auth tokens
+      const authToken = localStorage.getItem('authToken');
+      const refreshToken = localStorage.getItem('refreshToken');
+
+      if (!authToken || !refreshToken) {
+        setIsAuthenticated(false);
+        setIsLoading(false);
+        return;
+      }
+
+      setIsAuthenticated(true);
+
+      // Fetch cart items
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_SHOP_BACKEND_URL}/api/cart`,
+        {
+          headers: {
+            'accept': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch cart');
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        // Transform API data to match component structure
+        const items = result.data.map((item) => ({
+          id: item.sku_id,
+          name: item.sku_name,
+          price: item.price / 100, // Convert from cents to dollars
+          quantity: item.quantity,
+          selectedEMI: null,
+          // Using placeholder values since API doesn't provide these
+          image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=500',
+          category: 'Product',
+        }));
+        
+        setCartItems(items);
+      }
+    } catch (err) {
+      setError(err.message);
+      console.error('Error fetching cart:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // EMI calculation function
   const getEMIOptions = (price) => [
@@ -71,24 +102,48 @@ export default function Cart() {
     { months: 12, monthlyPayment: Math.ceil((price * 1.12) / 12), interestRate: 12 },
   ];
 
-  const updateQuantity = (productId, change) => {
-    setCartItems(prev => {
-      const item = prev.find(item => item.id === productId);
+  const updateQuantity = async (productId, change) => {
+    try {
+      const item = cartItems.find(item => item.id === productId);
       
-      if (change === -1 && item && item.quantity === 1) {
-        return prev.filter(item => item.id !== productId);
+      if (!item) return;
+
+      const newQuantity = item.quantity + change;
+
+      // If quantity becomes 0, remove the item
+      if (newQuantity === 0) {
+        await removeItem(productId);
+        return;
       }
-      
-      return prev.map(item => 
-        item.id === productId 
-          ? { ...item, quantity: Math.max(1, item.quantity + change) }
-          : item
+
+      // Optimistically update UI
+      setCartItems(prev =>
+        prev.map(item => 
+          item.id === productId 
+            ? { ...item, quantity: newQuantity }
+            : item
+        )
       );
-    });
+
+      // TODO: Call update quantity API when available
+    } catch (err) {
+      console.error('Error updating quantity:', err);
+      // Revert on error
+      checkAuthAndFetchCart();
+    }
   };
 
-  const removeItem = (productId) => {
-    setCartItems(prev => prev.filter(item => item.id !== productId));
+  const removeItem = async (productId) => {
+    try {
+      // Optimistically update UI
+      setCartItems(prev => prev.filter(item => item.id !== productId));
+
+      // TODO: Call remove from cart API when available
+    } catch (err) {
+      console.error('Error removing item:', err);
+      // Revert on error
+      checkAuthAndFetchCart();
+    }
   };
 
   const setProductEMI = (productId, months) => {
@@ -99,7 +154,6 @@ export default function Cart() {
           : item
       )
     );
-    setExpandedEMI(null);
   };
 
   const calculateItemTotal = (item) => {
@@ -120,21 +174,6 @@ export default function Cart() {
     
     try {
       // TODO: Replace with your actual API call
-      // const response = await fetch('/api/checkout', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify({
-      //     items: cartItems,
-      //     total: total,
-      //     subtotal: subtotal,
-      //     shipping: shipping,
-      //     address: userAddress,
-      //   }),
-      // });
-      // const data = await response.json();
-      
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       setTimeout(() => {
@@ -152,44 +191,16 @@ export default function Cart() {
   const bgColor = isDark ? 'bg-neutral-950' : 'bg-white';
   const textColor = isDark ? 'text-white' : 'text-gray-900';
   const subtextColor = isDark ? 'text-gray-400' : 'text-gray-600';
-  const cardBg = isDark ? 'bg-neutral-900' : 'bg-gray-50';
-  const borderColor = isDark ? 'border-neutral-800' : 'border-gray-200';
   const buttonBg = isDark ? 'bg-white' : 'bg-black';
   const buttonText = isDark ? 'text-black' : 'text-white';
   const buttonHover = isDark ? 'hover:bg-gray-200' : 'hover:bg-gray-800';
   const emptyStateBg = isDark ? 'bg-neutral-800' : 'bg-gray-100';
   const emptyStateIcon = isDark ? 'text-neutral-600' : 'text-gray-300';
-  const emiSelectedBorder = isDark ? 'border-white bg-white bg-opacity-5' : 'border-black bg-black bg-opacity-5';
-  const emiHoverBorder = isDark ? 'hover:border-neutral-600' : 'hover:border-gray-300';
-  const emiDefaultBorder = isDark ? 'border-neutral-700' : 'border-gray-200';
 
   return (
     <div className={`min-h-screen ${bgColor}`}>
       {/* Checkout Success Animation Overlay */}
-      {showCheckout && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 backdrop-blur-sm animate-fadeIn">
-          <div className="text-center animate-scaleIn">
-            <div className="relative mb-6">
-              <div className="w-32 h-32 mx-auto bg-green-500 rounded-full flex items-center justify-center animate-checkmark">
-                <CheckCircle size={64} className="text-white" strokeWidth={2.5} />
-              </div>
-              <div className="absolute inset-0 w-32 h-32 mx-auto bg-green-500 rounded-full animate-ripple opacity-30"></div>
-              <div className="absolute inset-0 w-32 h-32 mx-auto bg-green-500 rounded-full animate-ripple-delay opacity-20"></div>
-            </div>
-            <h2 className="text-4xl font-bold text-white mb-3 animate-slideUp">
-              Order Placed!
-            </h2>
-            <p className="text-xl text-gray-300 animate-slideUp animation-delay-200">
-              Thank you for your purchase
-            </p>
-            <div className="mt-6 flex gap-2 justify-center animate-slideUp animation-delay-400">
-              <div className="w-2 h-2 bg-white rounded-full animate-bounce"></div>
-              <div className="w-2 h-2 bg-white rounded-full animate-bounce animation-delay-200"></div>
-              <div className="w-2 h-2 bg-white rounded-full animate-bounce animation-delay-400"></div>
-            </div>
-          </div>
-        </div>
-      )}
+      {showCheckout && <CheckoutSuccess />}
 
       <div className="max-w-6xl mx-auto px-4 md:px-8 py-6">
         {/* Title */}
@@ -197,232 +208,73 @@ export default function Cart() {
           Shopping Cart
         </h1>
 
-        {cartItems.length > 0 ? (
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex justify-center items-center py-16">
+            <Loader2 className={`animate-spin ${subtextColor}`} size={40} />
+          </div>
+        )}
+
+        {/* Not Authenticated - Show Login Prompt */}
+        {!isLoading && !isAuthenticated && (
+          <div className="py-8 max-w-md mx-auto">
+            <LoginPromptBox />
+          </div>
+        )}
+
+        {/* Error State */}
+        {!isLoading && isAuthenticated && error && (
+          <div className="text-center py-16">
+            <div className={`w-24 h-24 mx-auto mb-4 rounded-full flex items-center justify-center
+              ${isDark ? "bg-red-900/20" : "bg-red-100"}`}>
+              <ShoppingBag size={40} className="text-red-500" />
+            </div>
+            <h2 className={`text-xl font-semibold ${textColor} mb-2`}>
+              Oops! Something went wrong
+            </h2>
+            <p className={`${subtextColor} mb-4`}>{error}</p>
+            <button
+              onClick={checkAuthAndFetchCart}
+              className={`px-6 py-2 rounded-lg font-medium transition-colors
+                ${isDark ? 'bg-neutral-800 hover:bg-neutral-700' : 'bg-gray-200 hover:bg-gray-300'}`}
+            >
+              Try Again
+            </button>
+          </div>
+        )}
+
+        {/* Cart Items */}
+        {!isLoading && isAuthenticated && !error && cartItems.length > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left Column - Cart Items */}
             <div className="lg:col-span-2 space-y-4">
-              {cartItems.map((item) => {
-                const itemTotal = item.price * item.quantity;
-                const emiOptions = getEMIOptions(itemTotal);
-                const isExpanded = expandedEMI === item.id;
-                
-                return (
-                  <div
-                    key={item.id}
-                    className={`${cardBg} rounded-2xl p-4`}
-                  >
-                    <div className="flex gap-4 mb-4">
-                      <div className="w-24 h-24 md:w-32 md:h-32 flex-shrink-0 rounded-xl overflow-hidden">
-                        <img
-                          src={item.image}
-                          alt={item.name}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-
-                      <div className="flex-1 flex flex-col justify-between">
-                        <div>
-                          <h3 className={`text-base md:text-lg font-medium ${textColor} mb-1`}>
-                            {item.name}
-                          </h3>
-                          <p className={`text-sm ${subtextColor}`}>{item.category}</p>
-                        </div>
-
-                        <div className="flex items-center justify-between mt-3">
-                          <div className={`flex items-center gap-3 ${cardBg} border ${borderColor} rounded-lg px-3 py-2`}>
-                            <button
-                              onClick={() => updateQuantity(item.id, -1)}
-                              className={`${textColor} hover:opacity-70 transition-opacity`}
-                            >
-                              <Minus size={16} />
-                            </button>
-                            <span className={`${textColor} font-medium w-8 text-center`}>
-                              {item.quantity}
-                            </span>
-                            <button
-                              onClick={() => updateQuantity(item.id, 1)}
-                              className={`${textColor} hover:opacity-70 transition-opacity`}
-                            >
-                              <Plus size={16} />
-                            </button>
-                          </div>
-
-                          <div className="flex items-center gap-4">
-                            <div className="text-right">
-                              <div className={`text-lg font-bold ${textColor}`}>
-                                ${calculateItemTotal(item)}
-                              </div>
-                              {item.originalPrice && (
-                                <div className={`text-sm ${subtextColor} line-through`}>
-                                  ${item.originalPrice * item.quantity}
-                                </div>
-                              )}
-                            </div>
-                            <button
-                              onClick={() => removeItem(item.id)}
-                              className={`${subtextColor} hover:text-red-500 transition-colors`}
-                            >
-                              <Trash2 size={20} />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* EMI Section for this product */}
-                    <div className={`border-t ${borderColor} pt-4`}>
-                      <button
-                        onClick={() => setExpandedEMI(isExpanded ? null : item.id)}
-                        className="w-full flex items-center justify-between"
-                      >
-                        <div className="flex items-center gap-2">
-                          <CreditCard size={18} className={textColor} />
-                          <span className={`text-sm font-medium ${textColor}`}>
-                            {item.selectedEMI 
-                              ? `EMI: ${item.selectedEMI} months` 
-                              : 'Add EMI Plan'}
-                          </span>
-                        </div>
-                        <span className={`text-sm ${subtextColor}`}>
-                          {isExpanded ? '▲' : '▼'}
-                        </span>
-                      </button>
-
-                      {isExpanded && (
-                        <div className="mt-3 space-y-2">
-                          {emiOptions.map((option) => (
-                            <label
-                              key={option.months}
-                              className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all ${
-                                item.selectedEMI === option.months
-                                  ? emiSelectedBorder
-                                  : `${emiDefaultBorder} ${emiHoverBorder}`
-                              }`}
-                            >
-                              <div className="flex items-center gap-2">
-                                <input
-                                  type="radio"
-                                  name={`emi-${item.id}`}
-                                  checked={item.selectedEMI === option.months}
-                                  onChange={() => setProductEMI(item.id, option.months)}
-                                  className="w-4 h-4"
-                                />
-                                <div>
-                                  <div className={`text-sm font-medium ${textColor}`}>
-                                    {option.months} Months
-                                  </div>
-                                  <div className={`text-xs ${subtextColor}`}>
-                                    {option.interestRate === 0 
-                                      ? 'No cost EMI' 
-                                      : `${option.interestRate}% interest`}
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <div className={`text-sm font-bold ${textColor}`}>
-                                  ${option.monthlyPayment}/mo
-                                </div>
-                                <div className={`text-xs ${subtextColor}`}>
-                                  ${option.monthlyPayment * option.months}
-                                </div>
-                              </div>
-                            </label>
-                          ))}
-                          {item.selectedEMI && (
-                            <button
-                              onClick={() => setProductEMI(item.id, null)}
-                              className={`w-full text-sm ${subtextColor} hover:${textColor} transition-colors py-2`}
-                            >
-                              Pay full amount
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+              {cartItems.map((item) => (
+                <CartItem
+                  key={item.id}
+                  item={item}
+                  onUpdateQuantity={updateQuantity}
+                  onRemoveItem={removeItem}
+                  onSetEMI={setProductEMI}
+                />
+              ))}
             </div>
 
             {/* Right Column - Address & Order Summary */}
             <div className="lg:col-span-1 space-y-6">
-              {/* Delivery Address */}
-              <div className={`${cardBg} rounded-2xl p-6`}>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <MapPin size={20} className={textColor} />
-                    <h2 className={`text-lg font-bold ${textColor}`}>
-                      Delivery Address
-                    </h2>
-                  </div>
-                  <button className={`${subtextColor} hover:${textColor} transition-colors`}>
-                    <Edit2 size={16} />
-                  </button>
-                </div>
-                <div className={`${subtextColor} space-y-1 text-sm`}>
-                  <p className={`${textColor} font-medium`}>{userAddress.name}</p>
-                  <p>{userAddress.street}</p>
-                  <p>{userAddress.city}, {userAddress.state} {userAddress.zipCode}</p>
-                  <p>{userAddress.country}</p>
-                  <p className="pt-2">{userAddress.phone}</p>
-                </div>
-              </div>
-
-              {/* Order Summary */}
-              <div className={`${cardBg} rounded-2xl p-6 sticky top-24`}>
-                <h2 className={`text-xl font-bold ${textColor} mb-6`}>
-                  Order Summary
-                </h2>
-
-                <div className="space-y-4 mb-6">
-                  <div className="flex justify-between">
-                    <span className={`${subtextColor}`}>Subtotal</span>
-                    <span className={`${textColor} font-medium`}>${subtotal}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className={`${subtextColor}`}>Shipping</span>
-                    <span className={`${textColor} font-medium`}>${shipping}</span>
-                  </div>
-                  
-                  {cartItems.some(item => item.selectedEMI) && (
-                    <div className={`${cardBg} border ${borderColor} rounded-lg p-3 space-y-2`}>
-                      <div className={`text-xs font-medium ${textColor} mb-2`}>EMI Plans:</div>
-                      {cartItems.filter(item => item.selectedEMI).map(item => {
-                        const itemTotal = item.price * item.quantity;
-                        const emiOptions = getEMIOptions(itemTotal);
-                        const selectedPlan = emiOptions.find(o => o.months === item.selectedEMI);
-                        return (
-                          <div key={item.id} className={`text-xs ${subtextColor}`}>
-                            {item.name} ${selectedPlan?.monthlyPayment} per month, {item.selectedEMI} months
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                  
-                  <div className={`border-t ${borderColor} pt-4`}>
-                    <div className="flex justify-between">
-                      <span className={`text-lg font-bold ${textColor}`}>Total</span>
-                      <span className={`text-lg font-bold ${textColor}`}>${total}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <button 
-                  onClick={handleCheckout}
-                  className={`w-full ${buttonBg} ${buttonText} py-3 rounded-lg font-medium ${buttonHover} transition-colors mb-3`}
-                >
-                  Proceed to Checkout
-                </button>
-
-                <p className={`text-xs ${subtextColor} text-center`}>
-                  Taxes calculated at checkout
-                </p>
-              </div>
+              <DeliveryAddress address={userAddress} />
+              <OrderSummary
+                cartItems={cartItems}
+                subtotal={subtotal}
+                shipping={shipping}
+                total={total}
+                onCheckout={handleCheckout}
+              />
             </div>
           </div>
-        ) : (
-          // Empty State
+        )}
+
+        {/* Empty Cart State */}
+        {!isLoading && isAuthenticated && !error && cartItems.length === 0 && (
           <div className="text-center py-16">
             <div className={`w-24 h-24 mx-auto mb-4 rounded-full ${emptyStateBg} flex items-center justify-center`}>
               <ShoppingBag size={40} className={emptyStateIcon} />
@@ -435,98 +287,6 @@ export default function Cart() {
           </div>
         )}
       </div>
-
-      <style jsx>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-
-        @keyframes scaleIn {
-          from {
-            transform: scale(0.8);
-            opacity: 0;
-          }
-          to {
-            transform: scale(1);
-            opacity: 1;
-          }
-        }
-
-        @keyframes checkmark {
-          0% {
-            transform: scale(0);
-            opacity: 0;
-          }
-          50% {
-            transform: scale(1.1);
-          }
-          100% {
-            transform: scale(1);
-            opacity: 1;
-          }
-        }
-
-        @keyframes ripple {
-          0% {
-            transform: scale(1);
-            opacity: 0.3;
-          }
-          100% {
-            transform: scale(1.8);
-            opacity: 0;
-          }
-        }
-
-        @keyframes slideUp {
-          from {
-            transform: translateY(20px);
-            opacity: 0;
-          }
-          to {
-            transform: translateY(0);
-            opacity: 1;
-          }
-        }
-
-        .animate-fadeIn {
-          animation: fadeIn 0.3s ease-out;
-        }
-
-        .animate-scaleIn {
-          animation: scaleIn 0.5s ease-out;
-        }
-
-        .animate-checkmark {
-          animation: checkmark 0.6s ease-out;
-        }
-
-        .animate-ripple {
-          animation: ripple 1.5s ease-out infinite;
-        }
-
-        .animate-ripple-delay {
-          animation: ripple 1.5s ease-out infinite 0.5s;
-        }
-
-        .animate-slideUp {
-          animation: slideUp 0.5s ease-out;
-        }
-
-        .animation-delay-200 {
-          animation-delay: 0.2s;
-          animation-fill-mode: backwards;
-        }
-
-        .animation-delay-400 {
-          animation-delay: 0.4s;
-          animation-fill-mode: backwards;
-        }
-      `}</style>
     </div>
   );
 }
