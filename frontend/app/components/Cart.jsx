@@ -236,12 +236,6 @@ function OrderSummary({ cartItems, subtotal, shipping, total, totalInterest, onC
           <span>Subtotal ({cartItems.length} items)</span>
           <span>₹{subtotal.toLocaleString()}</span>
         </div>
-        {totalInterest > 0 && (
-          <div className={`flex justify-between ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-            <span>EMI Interest</span>
-            <span className="text-orange-500">+₹{totalInterest.toLocaleString()}</span>
-          </div>
-        )}
         <div className={`flex justify-between ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
           <span>Shipping</span>
           <span>₹{shipping.toLocaleString()}</span>
@@ -353,11 +347,14 @@ export default function Cart() {
       const cartResult = await cartResponse.json();
       
       if (cartResult.success && cartResult.data) {
+        // Get stored EMI selections from localStorage
+        const emiSelections = JSON.parse(localStorage.getItem('emiSelections') || '{}');
+        
         const items = cartResult.data.map((item) => ({
           sku_id: item.sku_id,
           sku_name: item.sku_info?.sku_name || 'Unknown Product',
           price: item.sku_info?.price || 0,
-          selectedEMI: null,
+          selectedEMI: emiSelections[item.sku_id] || null, // Apply stored EMI selection
         }));
         
         setCartItems(items);
@@ -410,6 +407,11 @@ export default function Cart() {
       
       setCartItems(prev => prev.filter(item => item.sku_id !== sku_id));
 
+      // Remove from localStorage EMI selections
+      const emiSelections = JSON.parse(localStorage.getItem('emiSelections') || '{}');
+      delete emiSelections[sku_id];
+      localStorage.setItem('emiSelections', JSON.stringify(emiSelections));
+
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_SHOP_BACKEND_URL || 'https://1fib.halfskirmish.com'}/api/cart`,
         {
@@ -439,6 +441,15 @@ export default function Cart() {
           : item
       )
     );
+    
+    // Save to localStorage
+    const emiSelections = JSON.parse(localStorage.getItem('emiSelections') || '{}');
+    if (months === null) {
+      delete emiSelections[sku_id];
+    } else {
+      emiSelections[sku_id] = months;
+    }
+    localStorage.setItem('emiSelections', JSON.stringify(emiSelections));
   };
 
   const calculateItemTotal = (item) => {
@@ -528,6 +539,13 @@ export default function Cart() {
       );
 
       await Promise.all(deletePromises);
+
+      // Clear EMI selections from localStorage for purchased items
+      const emiSelections = JSON.parse(localStorage.getItem('emiSelections') || '{}');
+      cartItems.forEach(item => {
+        delete emiSelections[item.sku_id];
+      });
+      localStorage.setItem('emiSelections', JSON.stringify(emiSelections));
 
       setShowCheckout(true);
       setCartItems([]);
