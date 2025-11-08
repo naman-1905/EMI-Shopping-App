@@ -54,8 +54,6 @@ function Page() {
           Logout
         </button>
       </div>
-
-      <MobileBottomBar />
     </div>
   );
 }
