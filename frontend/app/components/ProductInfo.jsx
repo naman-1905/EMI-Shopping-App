@@ -1,7 +1,8 @@
 "use client"
-import React, { useState } from 'react';
-import { Heart, Link2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Heart, Link2, Check } from 'lucide-react';
 import { useTheme } from '../providers/ThemeProviders';
+import { useParams, useRouter } from 'next/navigation';
 
 const ProductInfo = ({ 
   brand = "Apple",
@@ -9,10 +10,15 @@ const ProductInfo = ({
   originalPrice = 123456,
   currentPrice = 123456,
   description = "",
-  emiPlans = []
+  emiPlans = [],
+  onEmiChange // New prop to notify parent of EMI changes
 }) => {
   const { isDark } = useTheme();
+  const params = useParams();
+  const router = useRouter();
   const [selectedEmiPlan, setSelectedEmiPlan] = useState(null);
+  const [addingToWishlist, setAddingToWishlist] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   // Default EMI plans if none provided
   const defaultEmiPlans = [
@@ -26,29 +32,123 @@ const ProductInfo = ({
 
   const displayEmiPlans = emiPlans.length > 0 ? emiPlans : defaultEmiPlans;
 
+  // Load saved EMI selection on mount
+  useEffect(() => {
+    if (params.sku_id) {
+      const emiSelections = JSON.parse(localStorage.getItem('emiSelections') || '{}');
+      if (emiSelections[params.sku_id]) {
+        setSelectedEmiPlan(emiSelections[params.sku_id]);
+      }
+    }
+  }, [params.sku_id]);
+
+  // Handle EMI plan selection
+  const handleEmiSelection = (planId) => {
+    setSelectedEmiPlan(planId);
+    
+    // Save to localStorage
+    if (params.sku_id) {
+      const emiSelections = JSON.parse(localStorage.getItem('emiSelections') || '{}');
+      emiSelections[params.sku_id] = planId;
+      localStorage.setItem('emiSelections', JSON.stringify(emiSelections));
+    }
+
+    // Notify parent component if callback provided
+    if (onEmiChange) {
+      const selectedPlan = displayEmiPlans.find(p => p.id === planId);
+      // Extract months from duration string (e.g., "3 months" -> 3)
+      const months = selectedPlan ? parseInt(selectedPlan.duration) : null;
+      onEmiChange(months);
+    }
+  };
+
+  // Add to wishlist handler
+  const handleAddToWishlist = async () => {
+    const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+    
+    if (!token) {
+      alert('Please login to add items to wishlist');
+      router.push('/login');
+      return;
+    }
+
+    try {
+      setAddingToWishlist(true);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_SHOP_BACKEND_URL}/api/wishlist`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          sku_id: params.sku_id
+        })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Failed to add to wishlist');
+      }
+
+      alert('Item added to wishlist successfully');
+    } catch (err) {
+      console.error('Error adding to wishlist:', err);
+      alert(err.message || 'Failed to add item to wishlist');
+    } finally {
+      setAddingToWishlist(false);
+    }
+  };
+
+  // Copy product link handler
+  const handleCopyLink = async () => {
+    try {
+      const productUrl = window.location.href;
+      await navigator.clipboard.writeText(productUrl);
+      setLinkCopied(true);
+      
+      // Reset the copied state after 2 seconds
+      setTimeout(() => {
+        setLinkCopied(false);
+      }, 2000);
+    } catch (err) {
+      console.error('Error copying link:', err);
+      alert('Failed to copy link');
+    }
+  };
+
   return (
     <div className={`w-full max-w-md ${isDark ? 'text-white' : 'text-black'}`}>
       {/* Action Icons */}
       <div className="flex gap-3 mb-4">
         <button 
+          onClick={handleAddToWishlist}
+          disabled={addingToWishlist}
           className={`w-10 h-10 rounded-full border-2 ${
             isDark 
               ? 'border-white hover:bg-white hover:text-black' 
               : 'border-black hover:bg-black hover:text-white'
-          } flex items-center justify-center transition-colors`}
+          } flex items-center justify-center transition-colors ${
+            addingToWishlist ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
           aria-label="Add to wishlist"
         >
           <Heart size={20} />
         </button>
         <button 
+          onClick={handleCopyLink}
           className={`w-10 h-10 rounded-full border-2 ${
-            isDark 
-              ? 'border-white hover:bg-white hover:text-black' 
-              : 'border-black hover:bg-black hover:text-white'
+            linkCopied
+              ? isDark 
+                ? 'bg-white text-black border-white' 
+                : 'bg-black text-white border-black'
+              : isDark 
+                ? 'border-white hover:bg-white hover:text-black' 
+                : 'border-black hover:bg-black hover:text-white'
           } flex items-center justify-center transition-colors`}
-          aria-label="Share product"
+          aria-label={linkCopied ? "Link copied" : "Share product"}
         >
-          <Link2 size={20} />
+          {linkCopied ? <Check size={20} /> : <Link2 size={20} />}
         </button>
       </div>
 
@@ -62,11 +162,7 @@ const ProductInfo = ({
 
       {/* Price */}
       <div className="flex items-center gap-3 mb-6">
-        {originalPrice > currentPrice && (
-          <span className={`line-through text-lg ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-            ₹ {originalPrice.toLocaleString()}
-          </span>
-        )}
+        
         <span className="text-3xl font-bold">
           ₹ {currentPrice.toLocaleString()}
         </span>
@@ -86,7 +182,7 @@ const ProductInfo = ({
           {displayEmiPlans.map((plan) => (
             <button
               key={plan.id}
-              onClick={() => setSelectedEmiPlan(plan.id)}
+              onClick={() => handleEmiSelection(plan.id)}
               className={`p-4 rounded border-2 transition-all text-left ${
                 selectedEmiPlan === plan.id
                   ? `${isDark ? 'border-white bg-white text-black' : 'border-black bg-black text-white'}`
