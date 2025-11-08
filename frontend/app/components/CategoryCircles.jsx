@@ -30,7 +30,7 @@ export default function CategoryCircles({ selectedCategory, onCategorySelect }) 
             const categoryName = item.category;
             if (!categoryMap.has(categoryName) && item.sku_image_handler?.featured_image_url) {
               categoryMap.set(categoryName, {
-                id: categoryName.toLowerCase().replace(/\s+/g, '-'),
+                id: categoryName.toLowerCase(), // Keep lowercase for matching
                 name: categoryName.split(' ')
                   .map(word => word.charAt(0).toUpperCase() + word.slice(1))
                   .join(' '),
