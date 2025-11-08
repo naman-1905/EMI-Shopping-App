@@ -1,72 +1,111 @@
 "use client"
-import { useState } from 'react';
-import { Heart, ShoppingBag } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Heart, ShoppingBag, Loader2 } from 'lucide-react';
 import { useTheme } from '../providers/ThemeProviders';
+import LoginPromptBox from './LoginModal';
 
 export default function WishlistProducts() {
-  const { isDark } = useTheme(); //
-  const [wishlistedItems, setWishlistedItems] = useState([1, 2, 3, 4, 5, 6]);
+  const { isDark } = useTheme();
+  const [wishlistProducts, setWishlistProducts] = useState([]);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const products = [
-    {
-      id: 1,
-      name: 'Vita Serum',
-      price: 103,
-      originalPrice: 117,
-      image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=500',
-      category: 'Skincare',
-    },
-    {
-      id: 2,
-      name: 'Deep Breath',
-      price: 79,
-      originalPrice: 81,
-      image: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=500',
-      category: 'Wellness',
-    },
-    {
-      id: 3,
-      name: 'Moisturizing Cream',
-      price: 103,
-      originalPrice: 117,
-      image: 'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?w=500',
-      category: 'Skincare',
-    },
-    {
-      id: 4,
-      name: 'Deep Breath Essential Oil',
-      price: 79,
-      originalPrice: 81,
-      image: 'https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?w=500',
-      category: 'Wellness',
-    },
-    {
-      id: 5,
-      name: 'Green Tea Serum',
-      price: 95,
-      originalPrice: 110,
-      image: 'https://images.unsplash.com/photo-1570194065650-d99fb4a2a7c9?w=500',
-      category: 'Skincare',
-    },
-    {
-      id: 6,
-      name: 'Rose Gold Essence',
-      price: 125,
-      originalPrice: 145,
-      image: 'https://images.unsplash.com/photo-1612817288484-6f916006741a?w=500',
-      category: 'Premium',
-    },
-  ];
+  useEffect(() => {
+    checkAuthAndFetchWishlist();
+  }, []);
 
-  // Filter only wishlisted products
-  const wishlistProducts = products.filter(product => wishlistedItems.includes(product.id));
+  const checkAuthAndFetchWishlist = async () => {
+    try {
+      // Check for auth tokens
+      const authToken = localStorage.getItem('authToken');
+      const refreshToken = localStorage.getItem('refreshToken');
 
-  const toggleWishlist = (productId) => {
-    setWishlistedItems(prev =>
-      prev.includes(productId)
-        ? prev.filter(id => id !== productId)
-        : [...prev, productId]
-    );
+      if (!authToken || !refreshToken) {
+        setIsAuthenticated(false);
+        setIsLoading(false);
+        return;
+      }
+
+      setIsAuthenticated(true);
+
+      // Fetch wishlist
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_SHOP_BACKEND_URL}/api/wishlist`,
+        {
+          headers: {
+            'accept': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch wishlist');
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        // Transform API data to match component structure
+        const products = result.data.map((item, index) => ({
+          id: item.sku_id,
+          name: item.sku_name,
+          price: item.price / 100, // Convert from cents to dollars
+          brand: item.sku_brand,
+          image: item.sku_image_handler?.product_image_1_url || '',
+          category: item.category,
+          description: item.sku_description,
+          quantity: item.quantity,
+          specialTag: item.special_tag,
+          bestSelling: item.best_selling
+        }));
+        
+        setWishlistProducts(products);
+      }
+    } catch (err) {
+      setError(err.message);
+      console.error('Error fetching wishlist:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const removeFromWishlist = async (productId) => {
+    try {
+      const authToken = localStorage.getItem('authToken');
+      
+      // Optimistically update UI
+      const previousProducts = wishlistProducts;
+      setWishlistProducts(prev => prev.filter(p => p.id !== productId));
+
+      // Call remove from wishlist API
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_SHOP_BACKEND_URL}/api/wishlist`,
+        {
+          method: 'DELETE',
+          headers: {
+            'accept': 'application/json',
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify({
+            sku_id: productId
+          })
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to remove item from wishlist');
+      }
+
+      const result = await response.json();
+      console.log(result.message); // "Item removed from wishlist successfully"
+    } catch (err) {
+      console.error('Error removing from wishlist:', err);
+      // Revert UI on error
+      setWishlistProducts(previousProducts);
+    }
   };
 
   // Theme-based classes
@@ -77,19 +116,52 @@ export default function WishlistProducts() {
 
   return (
     <div className={`min-h-screen ${bgColor} transition-colors duration-300`}>
-
-        {/* Title */}
-        <h1 className={`text-3xl md:text-4xl flex justify-center p-4 font-bold ${textColor} mb-8`}>
-          Your Wishlist
-        </h1>
+      {/* Title */}
+      <h1 className={`text-3xl md:text-4xl flex justify-center p-4 font-bold ${textColor} mb-8`}>
+        Your Wishlist
+      </h1>
 
       <div className="max-w-4xl mx-auto px-4 md:px-8 py-6">
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex justify-center items-center py-16">
+            <Loader2 className={`animate-spin ${subtextColor}`} size={40} />
+          </div>
+        )}
 
-        {wishlistProducts.length > 0 ? (
-          <div className="grid grid-cols-3 gap-4 md:gap-6">
+        {/* Not Authenticated - Show Login Prompt */}
+        {!isLoading && !isAuthenticated && (
+          <div className="py-8">
+            <LoginPromptBox />
+          </div>
+        )}
+
+        {/* Error State */}
+        {!isLoading && isAuthenticated && error && (
+          <div className="text-center py-16">
+            <div className={`w-24 h-24 mx-auto mb-4 rounded-full flex items-center justify-center
+              ${isDark ? "bg-red-900/20" : "bg-red-100"}`}>
+              <Heart size={40} className="text-red-500" />
+            </div>
+            <h2 className={`text-xl font-semibold ${textColor} mb-2`}>
+              Oops! Something went wrong
+            </h2>
+            <p className={`${subtextColor} mb-4`}>{error}</p>
+            <button
+              onClick={checkAuthAndFetchWishlist}
+              className={`px-6 py-2 rounded-lg font-medium transition-colors
+                ${isDark ? 'bg-neutral-800 hover:bg-neutral-700' : 'bg-gray-200 hover:bg-gray-300'}`}
+            >
+              Try Again
+            </button>
+          </div>
+        )}
+
+        {/* Wishlist Products */}
+        {!isLoading && isAuthenticated && !error && wishlistProducts.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {wishlistProducts.map((product) => (
               <div key={product.id} className="group cursor-pointer">
-                
                 {/* Product Image */}
                 <div className={`relative aspect-square mb-3 overflow-hidden rounded-2xl ${cardBg}`}>
                   <img
@@ -98,22 +170,25 @@ export default function WishlistProducts() {
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
 
-                  {/*Wish Button */}
+                  {/* Special Tag Badge */}
+                  {product.specialTag && (
+                    <div className="absolute top-3 right-3 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
+                      SPECIAL
+                    </div>
+                  )}
+
+                  {/* Wishlist Button */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      toggleWishlist(product.id);
+                      removeFromWishlist(product.id);
                     }}
                     className={`absolute top-3 left-3 w-8 h-8 rounded-full flex items-center justify-center shadow-md transition-transform
                       ${isDark ? "bg-neutral-800" : "bg-white"} hover:scale-110`}
                   >
                     <Heart
                       size={18}
-                      className={
-                        wishlistedItems.includes(product.id)
-                          ? `${isDark ? "fill-white text-white" : "fill-black text-black"}`
-                          : `${isDark ? "text-gray-500" : "text-gray-400"}`
-                      }
+                      className={isDark ? "fill-white text-white" : "fill-black text-black"}
                     />
                   </button>
 
@@ -128,36 +203,41 @@ export default function WishlistProducts() {
 
                 {/* Product Info */}
                 <div className="space-y-1 px-1">
+                  <p className={`text-xs ${subtextColor} uppercase tracking-wide`}>
+                    {product.brand}
+                  </p>
                   <h3 className={`text-sm md:text-base font-medium ${textColor} line-clamp-2`}>
                     {product.name}
                   </h3>
                   <div className="flex items-center gap-2">
                     <span className={`text-lg font-bold ${textColor}`}>
-                      ${product.price}
+                      ${product.price.toFixed(2)}
                     </span>
-                    {product.originalPrice && (
-                      <span className={`text-sm ${subtextColor} line-through`}>
-                        ${product.originalPrice}
+                    {product.bestSelling && (
+                      <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded">
+                        BESTSELLER
                       </span>
                     )}
                   </div>
                 </div>
-
               </div>
             ))}
           </div>
-        ) : (
-          //Empty State
+        )}
+
+        {/* Empty Wishlist State */}
+        {!isLoading && isAuthenticated && !error && wishlistProducts.length === 0 && (
           <div className="text-center py-16">
             <div className={`w-24 h-24 mx-auto mb-4 rounded-full flex items-center justify-center
               ${isDark ? "bg-neutral-800" : "bg-gray-100"}`}>
               <Heart size={40} className={`${isDark ? "text-gray-500" : "text-gray-300"}`} />
             </div>
-            <h2 className={`text-xl font-semibold ${textColor} mb-2`}>Your wishlist is empty</h2>
+            <h2 className={`text-xl font-semibold ${textColor} mb-2`}>
+              Your wishlist is empty
+            </h2>
             <p className={`${subtextColor}`}>Start adding products you love!</p>
           </div>
         )}
-
       </div>
     </div>
   );
