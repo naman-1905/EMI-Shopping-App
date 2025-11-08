@@ -82,35 +82,35 @@ pipeline {
             steps {
                 withCredentials([string(credentialsId: 'cloudflared_token', variable: 'CF_TOKEN')]) {
                     sh '''
-                        kubectl create namespace emi-shopping --dry-run=client -o yaml | kubectl apply -f -
+                        kubectl create namespace apps --dry-run=client -o yaml | kubectl apply -f -
                         
                         # Create cloudflared secret
-                        kubectl delete secret cloudflared-token -n emi-shopping --ignore-not-found=true
-                        kubectl create secret generic cloudflared-token --from-literal=token="${CF_TOKEN}" -n emi-shopping
+                        kubectl delete secret cloudflared-token -n apps --ignore-not-found=true
+                        kubectl create secret generic cloudflared-token --from-literal=token="${CF_TOKEN}" -n apps
                         
                         # Create docker registry secret
                         kubectl create secret docker-registry docker-creds \
                             --docker-server=${REG2} \
                             --docker-username=<user> \
                             --docker-password=<pass> \
-                            -n emi-shopping --dry-run=client -o yaml | kubectl apply -f -
+                            -n apps --dry-run=client -o yaml | kubectl apply -f -
                         
                         # Apply deployment
                         kubectl apply -f manifests/deployment.yaml
                         
                         # Wait for pod
                         sleep 10
-                        kubectl rollout status deployment/emi-app -n emi-shopping --timeout=5m
+                        kubectl rollout status deployment/emi-app -n apps --timeout=5m
                         
                         # Verify 3 containers running
-                        POD=$(kubectl get pod -n emi-shopping -l app=emi-app -o jsonpath='{.items[0].metadata.name}')
-                        READY=$(kubectl get pod $POD -n emi-shopping -o jsonpath='{.status.containerStatuses[?(@.ready==true)]}' | grep -o ready | wc -l)
+                        POD=$(kubectl get pod -n apps -l app=emi-app -o jsonpath='{.items[0].metadata.name}')
+                        READY=$(kubectl get pod $POD -n apps -o jsonpath='{.status.containerStatuses[?(@.ready==true)]}' | grep -o ready | wc -l)
                         
                         if [ $READY -eq 3 ]; then
                             echo "✓ All 3 containers running"
                         else
                             echo "✗ Only $READY/3 containers ready"
-                            kubectl describe pod $POD -n emi-shopping
+                            kubectl describe pod $POD -n apps
                             exit 1
                         fi
                     '''
