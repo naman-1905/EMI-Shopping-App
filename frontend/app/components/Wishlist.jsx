@@ -1,15 +1,18 @@
 "use client"
 import { useState, useEffect } from 'react';
 import { Heart, ShoppingBag, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useTheme } from '../providers/ThemeProviders';
 import LoginPromptBox from './LoginModal';
 
 export default function WishlistProducts() {
   const { isDark } = useTheme();
+  const router = useRouter();
   const [wishlistProducts, setWishlistProducts] = useState([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [addingToCart, setAddingToCart] = useState({});
 
   useEffect(() => {
     checkAuthAndFetchWishlist();
@@ -18,10 +21,10 @@ export default function WishlistProducts() {
   const checkAuthAndFetchWishlist = async () => {
     try {
       // Check for auth tokens
-      const authToken = localStorage.getItem('authToken');
+      const authToken = localStorage.getItem('authToken') || localStorage.getItem('token');
       const refreshToken = localStorage.getItem('refreshToken');
 
-      if (!authToken || !refreshToken) {
+      if (!authToken) {
         setIsAuthenticated(false);
         setIsLoading(false);
         return;
@@ -47,18 +50,12 @@ export default function WishlistProducts() {
       const result = await response.json();
       
       if (result.success && result.data) {
-        // Transform API data to match component structure
-        const products = result.data.map((item, index) => ({
+        // Transform API data to match the new response structure
+        const products = result.data.map((item) => ({
           id: item.sku_id,
-          name: item.sku_name,
-          price: item.price / 100, // Convert from cents to dollars
-          brand: item.sku_brand,
-          image: item.sku_image_handler?.product_image_1_url || '',
-          category: item.category,
-          description: item.sku_description,
-          quantity: item.quantity,
-          specialTag: item.special_tag,
-          bestSelling: item.best_selling
+          name: item.sku_info.sku_name,
+          price: item.sku_info.price,
+          quantity: item.sku_info.quantity
         }));
         
         setWishlistProducts(products);
@@ -73,10 +70,10 @@ export default function WishlistProducts() {
 
   const removeFromWishlist = async (productId) => {
     try {
-      const authToken = localStorage.getItem('authToken');
+      const authToken = localStorage.getItem('authToken') || localStorage.getItem('token');
       
       // Optimistically update UI
-      const previousProducts = wishlistProducts;
+      const previousProducts = [...wishlistProducts];
       setWishlistProducts(prev => prev.filter(p => p.id !== productId));
 
       // Call remove from wishlist API
@@ -100,12 +97,58 @@ export default function WishlistProducts() {
       }
 
       const result = await response.json();
-      console.log(result.message); // "Item removed from wishlist successfully"
+      console.log(result.message);
     } catch (err) {
       console.error('Error removing from wishlist:', err);
       // Revert UI on error
       setWishlistProducts(previousProducts);
+      alert('Failed to remove item from wishlist');
     }
+  };
+
+  const addToCart = async (productId) => {
+    const authToken = localStorage.getItem('authToken') || localStorage.getItem('token');
+    
+    if (!authToken) {
+      alert('Please login to add items to cart');
+      router.push('/login');
+      return;
+    }
+
+    try {
+      setAddingToCart(prev => ({ ...prev, [productId]: true }));
+      
+      const response = await fetch(`${process.env.NEXT_PUBLIC_SHOP_BACKEND_URL}/api/cart`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({
+          sku_id: productId
+        })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Failed to add to cart');
+      }
+
+      alert('Product added to cart!');
+      
+      // Remove from wishlist after successfully adding to cart
+      await removeFromWishlist(productId);
+    } catch (err) {
+      console.error('Error adding to cart:', err);
+      alert(err.message || 'Failed to add item to cart');
+    } finally {
+      setAddingToCart(prev => ({ ...prev, [productId]: false }));
+    }
+  };
+
+  const handleProductClick = (skuId) => {
+    router.push(`/product/${skuId}`);
   };
 
   // Theme-based classes
@@ -161,21 +204,17 @@ export default function WishlistProducts() {
         {!isLoading && isAuthenticated && !error && wishlistProducts.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {wishlistProducts.map((product) => (
-              <div key={product.id} className="group cursor-pointer">
-                {/* Product Image */}
-                <div className={`relative aspect-square mb-3 overflow-hidden rounded-2xl ${cardBg}`}>
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                  />
-
-                  {/* Special Tag Badge */}
-                  {product.specialTag && (
-                    <div className="absolute top-3 right-3 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
-                      SPECIAL
-                    </div>
-                  )}
+              <div 
+                key={product.id} 
+                className="group cursor-pointer"
+                onClick={() => handleProductClick(product.id)}
+              >
+                {/* Product Card */}
+                <div className={`relative aspect-square mb-3 overflow-hidden rounded-2xl ${cardBg} flex items-center justify-center`}>
+                  {/* Placeholder for product image since API doesn't provide image URL */}
+                  <div className={`w-full h-full flex items-center justify-center ${subtextColor}`}>
+                    <ShoppingBag size={48} />
+                  </div>
 
                   {/* Wishlist Button */}
                   <button
@@ -194,31 +233,39 @@ export default function WishlistProducts() {
 
                   {/* Add to Cart */}
                   <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      addToCart(product.id);
+                    }}
+                    disabled={addingToCart[product.id]}
                     className={`absolute bottom-3 right-3 w-8 h-8 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform
-                      ${isDark ? "bg-white/20" : "bg-black"}`}
+                      ${isDark ? "bg-white/20" : "bg-black"} ${addingToCart[product.id] ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
-                    <ShoppingBag size={20} />
+                    {addingToCart[product.id] ? (
+                      <Loader2 size={18} className="animate-spin" />
+                    ) : (
+                      <ShoppingBag size={18} />
+                    )}
                   </button>
                 </div>
 
                 {/* Product Info */}
                 <div className="space-y-1 px-1">
-                  <p className={`text-xs ${subtextColor} uppercase tracking-wide`}>
-                    {product.brand}
-                  </p>
                   <h3 className={`text-sm md:text-base font-medium ${textColor} line-clamp-2`}>
                     {product.name}
                   </h3>
                   <div className="flex items-center gap-2">
                     <span className={`text-lg font-bold ${textColor}`}>
-                      ${product.price.toFixed(2)}
+                      ₹{product.price.toLocaleString('en-IN')}
                     </span>
-                    {product.bestSelling && (
-                      <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded">
-                        BESTSELLER
-                      </span>
-                    )}
                   </div>
+                  {product.quantity > 0 ? (
+                    <p className={`text-xs ${subtextColor}`}>
+                      {product.quantity} in stock
+                    </p>
+                  ) : (
+                    <p className="text-xs text-red-500">Out of stock</p>
+                  )}
                 </div>
               </div>
             ))}
