@@ -15,6 +15,7 @@ export default function Navbar() {
   const [showResults, setShowResults] = useState(false);
   const searchInputRef = useRef(null);
   const searchResultsRef = useRef(null);
+  const timeoutRef = useRef(null);
 
   const iconClass = "w-6 h-6 cursor-pointer transition-colors duration-200";
   const hoverClass = isDark ? "hover:text-gray-400" : "hover:text-gray-600";
@@ -46,6 +47,10 @@ export default function Navbar() {
       setSearchQuery('');
       setSearchResults([]);
       setShowResults(false);
+      // Clear any pending timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
     }
   };
 
@@ -83,16 +88,23 @@ export default function Navbar() {
     const value = e.target.value;
     setSearchQuery(value);
     
+    // Clear existing timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
     // Debounce search
-    const timeoutId = setTimeout(() => {
+    timeoutRef.current = setTimeout(() => {
       performSearch(value);
     }, 300);
-
-    return () => clearTimeout(timeoutId);
   };
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
+      // Clear timeout and search immediately
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
       performSearch(searchQuery);
     }
   };
