@@ -82,18 +82,12 @@ pipeline {
             steps {
                 withCredentials([string(credentialsId: 'cloudflared_token', variable: 'CF_TOKEN')]) {
                     sh '''
+                        # Create namespace
                         kubectl create namespace apps --dry-run=client -o yaml | kubectl apply -f -
                         
                         # Create cloudflared secret
                         kubectl delete secret cloudflared-token -n apps --ignore-not-found=true
                         kubectl create secret generic cloudflared-token --from-literal=token="${CF_TOKEN}" -n apps
-                        
-                        # Create docker registry secret
-                        kubectl create secret docker-registry docker-creds \
-                            --docker-server=${REG2} \
-                            --docker-username=<user> \
-                            --docker-password=<pass> \
-                            -n apps --dry-run=client -o yaml | kubectl apply -f -
                         
                         # Apply deployment
                         kubectl apply -f manifests/deployment.yaml
