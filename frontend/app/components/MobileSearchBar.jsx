@@ -11,6 +11,7 @@ export default function MobileSearchBar() {
   const [isLoading, setIsLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const searchContainerRef = useRef(null);
+  const timeoutRef = useRef(null);
 
   const textColor = isDark ? "text-white" : "text-black";
   const bgColor = isDark ? "bg-neutral-900" : "bg-gray-100";
@@ -63,16 +64,23 @@ export default function MobileSearchBar() {
     const value = e.target.value;
     setSearchQuery(value);
     
+    // Clear existing timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
     // Debounce search
-    const timeoutId = setTimeout(() => {
+    timeoutRef.current = setTimeout(() => {
       performSearch(value);
     }, 300);
-
-    return () => clearTimeout(timeoutId);
   };
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
+      // Clear timeout and search immediately
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
       performSearch(searchQuery);
     }
   };
