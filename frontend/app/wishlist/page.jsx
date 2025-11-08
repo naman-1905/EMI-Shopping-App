@@ -8,7 +8,6 @@ function WishlistPage() {
     <div>
         <Navbar/>
         <WishlistProducts/>
-        <MobileBottomBar/>
     </div>
   )
 }
