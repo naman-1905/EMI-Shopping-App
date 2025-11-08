@@ -1,5 +1,5 @@
 # Multi-stage build for Node.js backend
-FROM node:18-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
@@ -10,7 +10,7 @@ COPY app/package.json app/package-lock.json ./
 RUN npm ci --only=production
 
 # Final stage
-FROM node:18-alpine
+FROM node:22-alpine
 
 WORKDIR /app
 
