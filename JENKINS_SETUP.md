@@ -152,8 +152,8 @@ These are automatically set in the pipeline:
 REG1 = "registrypush.kahitoz.com:5000"
 REG2 = "registry.kahitoz.com"
 DOCKER_CRED_ID = 'docker_creds'
-IMAGE_NAME_BACKEND = 'kahichan-backend'
-IMAGE_NAME_FRONTEND = 'kahichan-frontend'
+IMAGE_NAME_BACKEND = 'emi_backend'
+IMAGE_NAME_FRONTEND = 'emi_frontend'
 IMAGE_TAG = "${BUILD_NUMBER}-${BUILD_TIMESTAMP}"
 KUBECONFIG_KAHITOZ = '/home/jenkins/.kubekahitoz/config'
 KUBECONFIG_NAMAN = '/home/jenkins/.kubenaman/config'
@@ -212,10 +212,10 @@ Solution:
 ```bash
 # Test Docker image build locally
 cd backend
-docker build -t kahichan-backend:test -f Dockerfile .
+docker build -t emi_backend:test -f Dockerfile .
 
 cd ../frontend
-docker build -t kahichan-frontend:test -f Dockerfile .
+docker build -t emi_frontend:test -f Dockerfile .
 
 # Test Kubernetes deployment manifest
 kubectl apply -f manifests/deployment.yaml --dry-run=client -o yaml
@@ -282,10 +282,10 @@ kubectl get deployment -n emi-shopping
 
 ```bash
 # List built images
-docker images | grep kahichan
+docker images | grep emi_
 
 # Inspect image
-docker inspect kahichan-backend:latest
+docker inspect emi_backend:latest
 ```
 
 ---

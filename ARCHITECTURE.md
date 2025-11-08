@@ -207,7 +207,7 @@ START
 
 ### Frontend Container (Next.js)
 ```yaml
-Image: registry.kahitoz.com/kahichan-frontend:latest
+Image: registry.kahitoz.com/emi_frontend:latest
 Port: 3000
 Environment:
   - NODE_ENV: production
@@ -239,7 +239,7 @@ Health Checks:
 
 ### Backend Container (Node.js)
 ```yaml
-Image: registry.kahitoz.com/kahichan-backend:latest
+Image: registry.kahitoz.com/emi_backend:latest
 Port: 3001
 Environment:
   - NODE_ENV: production

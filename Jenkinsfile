@@ -26,7 +26,7 @@ pipeline {
         stage('Setup') {
             steps {
                 sh 'git checkout ${GIT_BRANCH}'
-                sh 'docker ps -a | grep kahichan || true && docker rm -f $(docker ps -a --filter "label=app=emi" -q) 2>/dev/null || true'
+                sh 'docker ps -a | grep emi_ || true && docker rm -f $(docker ps -a --filter "label=app=emi" -q) 2>/dev/null || true'
             }
         }
 
@@ -37,16 +37,16 @@ pipeline {
                     withCredentials([file(credentialsId: 'backend_env', variable: 'ENV_FILE')]) {
                         sh 'cp $ENV_FILE app/.env'
                     }
-                    sh 'docker build -t kahichan-backend:${IMAGE_TAG} -t kahichan-backend:latest .'
-                    withCredentials([usernamePassword(credentialsId: '${DOCKER_CRED}', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
+                    sh 'docker build -t emi_backend:${IMAGE_TAG} -t emi_backend:latest .'
+                    withCredentials([usernamePassword(credentialsId: 'docker_creds', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
                         sh '''
                             echo $PASS | docker login -u $USER --password-stdin ${REG1}
-                            docker tag kahichan-backend:${IMAGE_TAG} ${REG1}/kahichan-backend:latest
-                            docker push ${REG1}/kahichan-backend:latest
+                            docker tag emi_backend:${IMAGE_TAG} ${REG1}/emi_backend:latest
+                            docker push ${REG1}/emi_backend:latest
                             
                             echo $PASS | docker login -u $USER --password-stdin ${REG2}
-                            docker tag kahichan-backend:${IMAGE_TAG} ${REG2}/kahichan-backend:latest
-                            docker push ${REG2}/kahichan-backend:latest
+                            docker tag emi_backend:${IMAGE_TAG} ${REG2}/emi_backend:latest
+                            docker push ${REG2}/emi_backend:latest
                         '''
                     }
                 }
@@ -61,16 +61,16 @@ pipeline {
                     withCredentials([file(credentialsId: 'frontend_env', variable: 'ENV_FILE')]) {
                         sh 'cp $ENV_FILE .env.local'
                     }
-                    sh 'docker build -t kahichan-frontend:${IMAGE_TAG} -t kahichan-frontend:latest .'
-                    withCredentials([usernamePassword(credentialsId: '${DOCKER_CRED}', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
+                    sh 'docker build -t emi_frontend:${IMAGE_TAG} -t emi_frontend:latest .'
+                    withCredentials([usernamePassword(credentialsId: 'docker_creds', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
                         sh '''
                             echo $PASS | docker login -u $USER --password-stdin ${REG1}
-                            docker tag kahichan-frontend:${IMAGE_TAG} ${REG1}/kahichan-frontend:latest
-                            docker push ${REG1}/kahichan-frontend:latest
+                            docker tag emi_frontend:${IMAGE_TAG} ${REG1}/emi_frontend:latest
+                            docker push ${REG1}/emi_frontend:latest
                             
                             echo $PASS | docker login -u $USER --password-stdin ${REG2}
-                            docker tag kahichan-frontend:${IMAGE_TAG} ${REG2}/kahichan-frontend:latest
-                            docker push ${REG2}/kahichan-frontend:latest
+                            docker tag emi_frontend:${IMAGE_TAG} ${REG2}/emi_frontend:latest
+                            docker push ${REG2}/emi_frontend:latest
                         '''
                     }
                 }

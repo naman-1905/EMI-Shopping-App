@@ -60,8 +60,8 @@ Executed only if `COMPONENT` is `backend` or `both`:
 2. **Tag Pipeline** - Tags the build as `backend_build-{BUILD_NUMBER}`
 3. **Build Docker Image** - Creates Docker image with tag `{BUILD_NUMBER}-{BUILD_TIMESTAMP}`
 4. **Push to Registries**:
-   - Registry 1 (Push): `registrypush.kahitoz.com:5000/kahichan-backend:latest`
-   - Registry 2 (Pull): `registry.kahitoz.com/kahichan-backend:latest`
+  - Registry 1 (Push): `registrypush.kahitoz.com:5000/emi_backend:latest`
+  - Registry 2 (Pull): `registry.kahitoz.com/emi_backend:latest`
 
 ### Stage 5: Frontend Build & Push (Conditional)
 Executed only if `COMPONENT` is `frontend` or `both`:
@@ -69,8 +69,8 @@ Executed only if `COMPONENT` is `frontend` or `both`:
 2. **Tag Pipeline** - Tags the build as `frontend_build-{BUILD_NUMBER}`
 3. **Build Docker Image** - Creates Docker image with tag `{BUILD_NUMBER}-{BUILD_TIMESTAMP}`
 4. **Push to Registries**:
-   - Registry 1 (Push): `registrypush.kahitoz.com:5000/kahichan-frontend:latest`
-   - Registry 2 (Pull): `registry.kahitoz.com/kahichan-frontend:latest`
+  - Registry 1 (Push): `registrypush.kahitoz.com:5000/emi_frontend:latest`
+  - Registry 2 (Pull): `registry.kahitoz.com/emi_frontend:latest`
 
 ### Stage 6: Deploy Configuration
 Configures Kubernetes deployment:
@@ -155,7 +155,7 @@ Setup these credentials in Jenkins before running the pipeline:
 ### Containers (Single Pod, 3 Containers)
 
 #### Frontend Container
-- **Image**: `registry.kahitoz.com/kahichan-frontend:latest`
+- **Image**: `registry.kahitoz.com/emi_frontend:latest`
 - **Port**: 3000
 - **Resources**:
   - Request: 256Mi memory, 100m CPU
@@ -163,7 +163,7 @@ Setup these credentials in Jenkins before running the pipeline:
 - **Health Check**: HTTP GET `/` every 20s
 
 #### Backend Container
-- **Image**: `registry.kahitoz.com/kahichan-backend:latest`
+- **Image**: `registry.kahitoz.com/emi_backend:latest`
 - **Port**: 3001
 - **Environment**: From `backend-env` secret
 - **Resources**:

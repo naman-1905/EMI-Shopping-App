@@ -7,7 +7,7 @@ def call() {
     try {
         // Remove all containers
         sh '''
-            docker ps -a | grep kahichan || true
+            docker ps -a | grep emi_ || true
             docker rm -f $(docker ps -a --filter "label=app=emi" -q) || true
         '''
         

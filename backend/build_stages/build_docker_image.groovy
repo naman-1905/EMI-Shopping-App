@@ -10,8 +10,8 @@ def call(String imageName, String imageTag) {
         echo "Building Docker image: ''' + imageName + ''':''' + imageTag + '''"
         
         docker build \
-            -t ''' + imageName + ''':''' + imageTag + ''' \
-            -t ''' + imageName + ''':latest \
+            -t emi_backend:''' + imageTag + ''' \
+            -t emi_backend:latest \
             -f Dockerfile \
             .
         
