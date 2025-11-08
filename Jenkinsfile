@@ -100,8 +100,14 @@ pipeline {
                             --docker-password=${DOCKER_PASS} \
                             -n apps
                         
-                        # Apply deployment
-                        kubectl apply -f manifests/deployment.yaml
+                        # Check if deployment exists
+                        if kubectl get deployment emi-app -n apps &>/dev/null; then
+                            echo "✓ Deployment exists - performing rolling restart"
+                            kubectl rollout restart deployment/emi-app -n apps
+                        else
+                            echo "✓ Deployment not found - applying new deployment"
+                            kubectl apply -f manifests/deployment.yaml
+                        fi
                         
                         # Wait for pod
                         sleep 10
