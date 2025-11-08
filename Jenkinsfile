@@ -100,8 +100,8 @@ pipeline {
                             --docker-password=${DOCKER_PASS} \
                             -n apps
                         
-                        # Check if deployment exists
-                        if kubectl get deployment emi-app -n apps &>/dev/null; then
+                        # Check if deployment exists and apply/restart accordingly
+                        if kubectl get deployment emi-app -n apps >/dev/null 2>&1; then
                             echo "✓ Deployment exists - performing rolling restart"
                             kubectl rollout restart deployment/emi-app -n apps
                         else
@@ -109,19 +109,29 @@ pipeline {
                             kubectl apply -f manifests/deployment.yaml
                         fi
                         
-                        # Wait for pod
-                        sleep 10
-                        kubectl rollout status deployment/emi-app -n apps --timeout=5m
+                        # Wait for rollout to complete
+                        echo "Waiting for deployment to complete..."
+                        kubectl rollout status deployment/emi-app -n apps --timeout=300s
                         
                         # Verify 3 containers running
+                        echo "Verifying container status..."
                         POD=$(kubectl get pod -n apps -l app=emi-app -o jsonpath='{.items[0].metadata.name}')
-                        READY=$(kubectl get pod $POD -n apps -o jsonpath='{.status.containerStatuses[?(@.ready==true)]}' | grep -o ready | wc -l)
                         
-                        if [ $READY -eq 3 ]; then
-                            echo "✓ All 3 containers running"
+                        # Wait a bit for containers to initialize
+                        sleep 15
+                        
+                        # Check container readiness
+                        READY=$(kubectl get pod $POD -n apps -o jsonpath='{.status.containerStatuses[?(@.ready==true)]}' | jq '. | length' 2>/dev/null || echo "0")
+                        
+                        if [ "$READY" -eq "3" ]; then
+                            echo "✓ All 3 containers are ready and running"
+                            kubectl get pods -n apps -l app=emi-app
                         else
-                            echo "✗ Only $READY/3 containers ready"
+                            echo "✗ Only $READY/3 containers ready - checking pod status"
+                            kubectl get pods -n apps -l app=emi-app
                             kubectl describe pod $POD -n apps
+                            echo "Container logs:"
+                            kubectl logs $POD -n apps --all-containers=true --tail=50 || true
                             exit 1
                         fi
                     '''
