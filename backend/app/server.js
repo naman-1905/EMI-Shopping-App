@@ -14,7 +14,8 @@ import cartRouter from './apis/Cart/api.js';
 import ordersRouter from './apis/Orders/api.js';
 
 const app = express();
-const port = 5000;
+const port = process.env.PORT || 5000;
+const host = process.env.HOST || '0.0.0.0';
 
 // Global middleware for parsing JSON
 app.use(express.json());
@@ -101,7 +102,7 @@ app.use('/api/cart', cartRouter);
 // Orders API routes
 app.use('/api/orders', ordersRouter);
 
-app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
-  console.log(`Swagger docs available at http://localhost:${port}/docs`);
+app.listen(port, host, () => {
+  console.log(`Server running at http://${host}:${port}`);
+  console.log(`Swagger docs available at http://${host}:${port}/docs`);
 });
