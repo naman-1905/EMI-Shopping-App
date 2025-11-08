@@ -98,12 +98,9 @@ spec:
         image: cloudflare/cloudflared:latest
         imagePullPolicy: Always
         command:
-          - "cloudflared"
-          - "tunnel"
-          - "--no-autoupdate"
-          - "run"
-          - "--token"
-          - "$(CLOUDFLARED_TOKEN)"
+          - "sh"
+          - "-c"
+          - "cloudflared tunnel --no-autoupdate run --token $CLOUDFLARED_TOKEN"
         env:
           - name: CLOUDFLARED_TOKEN
             valueFrom:
