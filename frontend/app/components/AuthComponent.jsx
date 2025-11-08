@@ -7,17 +7,81 @@ export default function AuthComponent() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLogin, setIsLogin] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleAuth = () => {
-    if (isLogin) {
-      console.log('Login:', { email, password });
-    } else {
-      console.log('Sign Up:', { firstName, lastName, email, password });
+  const handleAuth = async () => {
+    setError('');
+    setLoading(true);
+
+    try {
+      if (isLogin) {
+        // Login
+        const response = await fetch(`${process.env.NEXT_PUBLIC_SHOP_BACKEND_URL}/api/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'accept': 'application/json',
+          },
+          body: JSON.stringify({
+            email,
+            password,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || 'Login failed');
+        }
+
+        if (data.success) {
+          // Store tokens in localStorage
+          localStorage.setItem('authToken', data.authToken);
+          localStorage.setItem('refreshToken', data.refreshToken);
+          
+          window.location.href = '/';
+        }
+      } else {
+        // Sign Up
+        const response = await fetch(`${process.env.NEXT_PUBLIC_SHOP_BACKEND_URL}/api/signup`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'accept': 'application/json',
+          },
+          body: JSON.stringify({
+            first_name: firstName,
+            last_name: lastName,
+            email,
+            password,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || 'Signup failed');
+        }
+
+        if (data.success) {
+          // Store tokens in localStorage
+          localStorage.setItem('authToken', data.authToken);
+          localStorage.setItem('refreshToken', data.refreshToken);
+          
+          window.location.href = '/';
+        }
+      }
+    } catch (err) {
+      setError(err.message || 'An error occurred. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleGoogleLogin = () => {
     console.log('Google login clicked');
+    setError('Google login needs to be implemented');
   };
 
   // Electronics product images
@@ -92,7 +156,10 @@ export default function AuthComponent() {
             {/* Toggle Tabs */}
             <div className="flex mb-8 bg-gray-100 rounded-lg p-1">
               <button
-                onClick={() => setIsLogin(true)}
+                onClick={() => {
+                  setIsLogin(true);
+                  setError('');
+                }}
                 className={`flex-1 py-3 px-4 rounded-md font-medium transition-all duration-200 ${
                   isLogin
                     ? 'bg-white text-gray-900 shadow-sm'
@@ -102,7 +169,10 @@ export default function AuthComponent() {
                 Login
               </button>
               <button
-                onClick={() => setIsLogin(false)}
+                onClick={() => {
+                  setIsLogin(false);
+                  setError('');
+                }}
                 className={`flex-1 py-3 px-4 rounded-md font-medium transition-all duration-200 ${
                   !isLogin
                     ? 'bg-white text-gray-900 shadow-sm'
@@ -124,6 +194,13 @@ export default function AuthComponent() {
                   : "Sign up now. It's FREE! Takes less than a minute."}
               </p>
             </div>
+
+            {/* Error Message */}
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
+                {error}
+              </div>
+            )}
 
             {/* Input Fields */}
             <div className="space-y-6">
@@ -167,6 +244,7 @@ export default function AuthComponent() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Email"
                   className="w-full px-0 py-3 border-0 border-b-2 border-gray-300 focus:border-gray-900 focus:outline-none text-gray-900 placeholder-gray-400 transition-colors"
+                  required
                 />
               </div>
 
@@ -178,17 +256,20 @@ export default function AuthComponent() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Password"
                   className="w-full px-0 py-3 border-0 border-b-2 border-gray-300 focus:border-gray-900 focus:outline-none text-gray-900 placeholder-gray-400 transition-colors"
+                  required
                 />
               </div>
 
               {/* Auth Button */}
               <button
                 onClick={handleAuth}
-                className="w-full cursor-pointer bg-gray-900 text-white py-4 rounded-lg font-medium hover:bg-gray-800 transition-colors"
+                disabled={loading}
+                className={`w-full cursor-pointer bg-gray-900 text-white py-4 rounded-lg font-medium transition-colors ${
+                  loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-800'
+                }`}
               >
-                {isLogin ? 'Login' : 'Sign Up'}
+                {loading ? 'Please wait...' : isLogin ? 'Login' : 'Sign Up'}
               </button>
-
             </div>
           </div>
         </div>

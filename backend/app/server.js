@@ -20,6 +20,20 @@ const host = process.env.HOST || '0.0.0.0';
 // Global middleware for parsing JSON
 app.use(express.json());
 
+// Allow CORS from any origin (for development / testing).
+// This sets permissive headers and handles preflight OPTIONS requests.
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  // If you need to allow credentials (cookies/authorization headers with credentials),
+  // set Access-Control-Allow-Credentials to true and configure the origin accordingly.
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+  next();
+});
+
 // Swagger setup
 const options = {
   definition: {
