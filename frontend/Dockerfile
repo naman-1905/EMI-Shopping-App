@@ -12,6 +12,10 @@ RUN npm ci
 # Copy source code
 COPY . .
 
+# Ensure an env file exists (Jenkins will copy `.env.local` into the build context when provided)
+# This avoids failing later when the final stage tries to copy the file from the builder image.
+RUN [ -f .env.local ] || touch .env.local
+
 # Build the application
 RUN npm run build
 
@@ -31,6 +35,10 @@ COPY --from=builder /app/.next ./.next
 
 # Copy public directory
 COPY --from=builder /app/public ./public
+
+# Copy environment file produced by CI (if any). Jenkins copies credentials to `.env.local` before building.
+# We copy it from the builder image so runtime `next start` can read it if needed.
+COPY --from=builder /app/.env.local ./.env.local
 
 # Copy necessary config files
 COPY package.json next.config.mjs ./
