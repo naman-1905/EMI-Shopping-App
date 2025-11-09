@@ -72,7 +72,7 @@ function ProductPage() {
         localStorage.setItem('emiSelections', JSON.stringify(emiSelections));
       }
       
-      const response = await fetch('https://1fib.halfskirmish.com/api/cart', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_SHOP_BACKEND_URL}/api/cart`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -163,18 +163,26 @@ function ProductPage() {
     return plans;
   };
 
-// Calculate discounted price if offer exists
-const getPrice = () => {
-  if (!productData) return { original: 0, current: 0 };
-  
-  const original = productData.price;
-  
-  // Always return original price for both
-  return {
-    original,
-    current: original  // Changed: always use original price
+  // Get offer description
+  const getOfferDescription = () => {
+    if (!productData?.sku_price_buying_option_info?.[0]) return "";
+    
+    const buyingOption = productData.sku_price_buying_option_info[0];
+    return buyingOption.offer_description || "";
   };
-};
+
+  // Calculate discounted price if offer exists
+  const getPrice = () => {
+    if (!productData) return { original: 0, current: 0 };
+    
+    const original = productData.price;
+    
+    // Always return original price for both
+    return {
+      original,
+      current: original  // Changed: always use original price
+    };
+  };
 
   if (loading) {
     return (
@@ -207,6 +215,7 @@ const getPrice = () => {
   const prices = getPrice();
   const images = getProductImages();
   const emiPlans = getEmiPlans();
+  const offerDescription = getOfferDescription();
 
   return (
     <div className={`min-h-screen ${isDark ? 'bg-neutral-950' : 'bg-white'}`}>
@@ -226,6 +235,7 @@ const getPrice = () => {
             currentPrice={prices.current}
             description={productData.sku_description}
             emiPlans={emiPlans}
+            offerDescription={offerDescription}
             onEmiChange={handleEmiChange}
           />
           <ActionButtons 

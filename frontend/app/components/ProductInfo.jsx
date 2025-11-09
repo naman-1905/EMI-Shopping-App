@@ -11,6 +11,7 @@ const ProductInfo = ({
   currentPrice = 123456,
   description = "",
   emiPlans = [],
+  offerDescription = "", // New prop for offer description
   onEmiChange // New prop to notify parent of EMI changes
 }) => {
   const { isDark } = useTheme();
@@ -161,11 +162,23 @@ const ProductInfo = ({
       <h1 className="text-3xl font-bold mb-4">{title}</h1>
 
       {/* Price */}
-      <div className="flex items-center gap-3 mb-6">
+      <div className="mb-6">
+        <div className="flex items-center gap-3 mb-3">
+          <span className="text-3xl font-bold">
+            ₹ {currentPrice.toLocaleString()}
+          </span>
+        </div>
         
-        <span className="text-3xl font-bold">
-          ₹ {currentPrice.toLocaleString()}
-        </span>
+        {/* Offer Description */}
+        {offerDescription && (
+          <div className={`inline-block px-3 py-1.5 rounded ${
+            isDark 
+              ? 'bg-green-900/30 border border-green-700 text-green-400' 
+              : 'bg-green-50 border border-green-300 text-green-700'
+          }`}>
+            <span className="text-sm font-medium">🎉 {offerDescription}</span>
+          </div>
+        )}
       </div>
 
       {/* Description */}
