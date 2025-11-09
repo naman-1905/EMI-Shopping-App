@@ -59,7 +59,14 @@ pipeline {
             steps {
                 dir('frontend') {
                     withCredentials([file(credentialsId: 'frontend_env', variable: 'ENV_FILE')]) {
-                        sh 'cp $ENV_FILE .env.local'
+                        sh '''
+                            cp $ENV_FILE .env.local
+                            if [ ! -f .env.local ]; then
+                                echo "ERROR: Failed to copy .env.local file to frontend directory"
+                                exit 1
+                            fi
+                            echo "✓ Successfully copied .env.local to frontend directory"
+                        '''
                     }
                     sh 'docker build -t emi_frontend:${IMAGE_TAG} -t emi_frontend:latest .'
                     withCredentials([usernamePassword(credentialsId: 'docker_creds', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
