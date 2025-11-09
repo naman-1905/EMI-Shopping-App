@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '../providers/ThemeProviders';
+import { Image } from 'lucide-react';
 
 export default function BestSellingProducts({ selectedCategory }) {
   const { isDark } = useTheme();
@@ -135,8 +136,12 @@ export default function BestSellingProducts({ selectedCategory }) {
                   />
                 ) : (
                   <div className={`w-full h-full flex items-center justify-center ${cardBg}`}>
-                    <span className={subtextColor}>No Image</span>
-                  </div>
+  <img 
+    src="https://doieur1arw9xr.cloudfront.net/optamark/images/product/TECHNOLOGY-PRODUCTS-ELECTRONICS.jpg"
+    alt="Product placeholder"
+    className="w-full h-full object-cover"
+  />
+</div>
                 )}
               </div>
 
