@@ -2,12 +2,14 @@
 
 import { Search, Heart, ShoppingBag, User, Moon, Sun, X, Loader2 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useTheme } from '../providers/ThemeProviders';
 import Link from 'next/link';
 import Image from 'next/image';
 
 export default function Navbar() {
   const { isDark, toggleTheme } = useTheme();
+  const router = useRouter();
   const [isHovered, setIsHovered] = useState(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -110,6 +112,13 @@ export default function Navbar() {
     }
   };
 
+  const handleProductClick = (skuId) => {
+    router.push(`/product/${skuId}`);
+    setShowResults(false);
+    setSearchQuery('');
+    setIsSearchOpen(false);
+  };
+
   const formatPrice = (price) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -126,16 +135,15 @@ export default function Navbar() {
           {/* Desktop View */}
           <div className="hidden md:flex items-center justify-between w-full">
             {/* Logo */}
-<Link href="/" className={`flex items-center ${textColor} hover:opacity-80 transition-opacity`}>
-  <Image 
-    src="/1fi_logo.jpg" 
-    alt="1Fi Logo" 
-    width={40} 
-    height={40} 
-    className="object-contain"
-  />
-</Link>
-
+            <Link href="/" className={`flex items-center ${textColor} hover:opacity-80 transition-opacity`}>
+              <Image 
+                src="/1fi_logo.jpg" 
+                alt="1Fi Logo" 
+                width={40} 
+                height={40} 
+                className="object-contain"
+              />
+            </Link>
 
             {/* Center Search Bar - Expanded */}
             <div className={`absolute left-1/2 transform -translate-x-1/2 transition-all duration-300 ease-in-out ${isSearchOpen ? 'w-96 opacity-100' : 'w-0 opacity-0'}`}>
@@ -165,6 +173,7 @@ export default function Navbar() {
                           {searchResults.map((product) => (
                             <div
                               key={product.sku_id}
+                              onClick={() => handleProductClick(product.sku_id)}
                               className={`p-4 cursor-pointer transition-colors ${isDark ? "hover:bg-neutral-800" : "hover:bg-gray-50"} border-b ${isDark ? "border-neutral-800" : "border-gray-100"} last:border-b-0`}
                             >
                               <div className="flex items-start gap-3">
@@ -265,14 +274,14 @@ export default function Navbar() {
           {/* Mobile View */}
           <div className="md:hidden flex items-center justify-between w-full">
             <Link href="/" className={`flex items-center ${textColor} hover:opacity-80 transition-opacity`}>
-  <Image 
-    src="/1fi_logo.jpg" 
-    alt="1Fi Logo" 
-    width={40} 
-    height={40} 
-    className="object-contain"
-  />
-</Link>
+              <Image 
+                src="/1fi_logo.jpg" 
+                alt="1Fi Logo" 
+                width={40} 
+                height={40} 
+                className="object-contain"
+              />
+            </Link>
             <button
               onClick={toggleTheme}
               className={`${iconClass} ${hoverClass} ${textColor}`}

@@ -2,10 +2,12 @@
 
 import { Search, ShoppingBag, Loader2 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useTheme } from '../providers/ThemeProviders';
 
 export default function MobileSearchBar() {
   const { isDark } = useTheme();
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -85,6 +87,12 @@ export default function MobileSearchBar() {
     }
   };
 
+  const handleProductClick = (skuId) => {
+    router.push(`/product/${skuId}`);
+    setShowResults(false);
+    setSearchQuery('');
+  };
+
   const formatPrice = (price) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -119,6 +127,7 @@ export default function MobileSearchBar() {
                 {searchResults.map((product) => (
                   <div
                     key={product.sku_id}
+                    onClick={() => handleProductClick(product.sku_id)}
                     className={`p-4 cursor-pointer transition-colors ${isDark ? "hover:bg-neutral-800" : "hover:bg-gray-50"} border-b ${isDark ? "border-neutral-800" : "border-gray-100"} last:border-b-0`}
                   >
                     <div className="flex items-start gap-3">
