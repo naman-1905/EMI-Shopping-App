@@ -66,6 +66,9 @@ pipeline {
                                 exit 1
                             fi
                             echo "✓ Successfully copied .env.local to frontend directory"
+                            echo "------- Contents of .env.local -------"
+                            cat .env.local
+                            echo "---------------------------------------"
                         '''
                     }
                     sh 'docker build -t emi_frontend:${IMAGE_TAG} -t emi_frontend:latest .'
