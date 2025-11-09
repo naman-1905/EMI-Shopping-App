@@ -4,6 +4,7 @@ import { Search, Heart, ShoppingBag, User, Moon, Sun, X, Loader2 } from 'lucide-
 import { useState, useRef, useEffect } from 'react';
 import { useTheme } from '../providers/ThemeProviders';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function Navbar() {
   const { isDark, toggleTheme } = useTheme();
@@ -125,9 +126,16 @@ export default function Navbar() {
           {/* Desktop View */}
           <div className="hidden md:flex items-center justify-between w-full">
             {/* Logo */}
-            <Link href="/" className={`text-2xl font-bold ${textColor} hover:opacity-80 transition-opacity`}>
-              1Fi
-            </Link>
+<Link href="/" className={`flex items-center ${textColor} hover:opacity-80 transition-opacity`}>
+  <Image 
+    src="/1fi_logo.jpg" 
+    alt="1Fi Logo" 
+    width={40} 
+    height={40} 
+    className="object-contain"
+  />
+</Link>
+
 
             {/* Center Search Bar - Expanded */}
             <div className={`absolute left-1/2 transform -translate-x-1/2 transition-all duration-300 ease-in-out ${isSearchOpen ? 'w-96 opacity-100' : 'w-0 opacity-0'}`}>
@@ -256,9 +264,15 @@ export default function Navbar() {
 
           {/* Mobile View */}
           <div className="md:hidden flex items-center justify-between w-full">
-            <Link href="/home" className={`text-2xl font-bold ${textColor} hover:opacity-80 transition-opacity`}>
-              1Fi
-            </Link>
+            <Link href="/" className={`flex items-center ${textColor} hover:opacity-80 transition-opacity`}>
+  <Image 
+    src="/1fi_logo.jpg" 
+    alt="1Fi Logo" 
+    width={40} 
+    height={40} 
+    className="object-contain"
+  />
+</Link>
             <button
               onClick={toggleTheme}
               className={`${iconClass} ${hoverClass} ${textColor}`}

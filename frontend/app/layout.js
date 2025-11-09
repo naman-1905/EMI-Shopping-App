@@ -15,8 +15,8 @@ const titilliumWeb = Titillium_Web({
 });
 
 export const metadata = {
-  title: "Naman's Shopping Website",
-  description: "A Project made by Naman Chaturvedi",
+  title: "1Fi Ecommerce Store",
+  description: "1Fi - Turn your Mutual Funds into Buying Power",
 };
 
 export default function RootLayout({ children }) {
