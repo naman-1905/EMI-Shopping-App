@@ -152,7 +152,7 @@ export default function BestSellingProducts({ selectedCategory }) {
                 </h3>
                 <div className="flex items-center gap-2 pt-1">
                   <span className={`text-lg font-bold ${textColor}`}>
-                    ₹{(product.price / 100).toLocaleString('en-IN')}
+                    ₹{(product.price).toLocaleString('en-IN')}
                   </span>
                 </div>
               </div>
