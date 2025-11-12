@@ -1,4 +1,4 @@
-import { runQuery } from '../../utility/db.js';
+import { runQuery, tables } from '../../utility/db.js';
 
 async function insertWishlist(userId, skuId) {
   try {
@@ -9,19 +9,13 @@ async function insertWishlist(userId, skuId) {
       };
     }
 
-    await runQuery(async (supabase) => {
-      const { error } = await supabase
-        .from('user_preference')
-        .upsert({
-          user_id: userId,
-          sku_id: skuId,
-          wishlist: true,
-        });
-
-      if (error) {
-        throw new Error(error.message);
-      }
-    });
+    const query = `
+      INSERT INTO ${tables.userPreference} (user_id, sku_id, wishlist)
+      VALUES ($1, $2, true)
+      ON CONFLICT (user_id, sku_id)
+      DO UPDATE SET wishlist = true
+    `
+    await runQuery(query, [userId, skuId]);
 
     return { success: true, message: 'Item added to wishlist successfully' };
   } catch (error) {

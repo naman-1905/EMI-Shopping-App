@@ -1,4 +1,4 @@
-import { runQuery } from '../../utility/db.js';
+import { runQuery, tables } from '../../utility/db.js';
 
 /**
  * Fetches all cart items for a user
@@ -14,26 +14,29 @@ export async function getAllCartItems(user_id) {
       };
     }
 
-    const cartItems = await runQuery(async (supabase) => {
-      const { data, error } = await supabase
-        .from('user_preference')
-        .select(`
-          sku_id,
-          sku_info(sku_id, sku_name, price, quantity)
-        `)
-        .eq('user_id', user_id)
-        .eq('cart', true);
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      return data;
-    });
+    const query = `
+      SELECT
+        up.sku_id,
+        CASE
+          WHEN si.sku_id IS NULL THEN NULL
+          ELSE json_build_object(
+            'sku_id', si.sku_id,
+            'sku_name', si.sku_name,
+            'price', si.price,
+            'quantity', si.quantity
+          )
+        END AS sku_info
+      FROM ${tables.userPreference} up
+      LEFT JOIN ${tables.skuInfo} si ON up.sku_id = si.sku_id
+      WHERE up.user_id = $1
+        AND up.cart = true
+      ORDER BY si.sku_name
+    `
+    const { rows } = await runQuery(query, [user_id])
 
     return {
       success: true,
-      data: cartItems || [],
+      data: rows,
       message: 'Cart items retrieved successfully',
     };
   } catch (err) {

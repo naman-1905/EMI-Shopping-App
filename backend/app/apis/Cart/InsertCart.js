@@ -1,4 +1,4 @@
-import { runQuery } from '../../utility/db.js';
+import { runQuery, tables } from '../../utility/db.js';
 
 /**
  * Inserts an item into the user's cart
@@ -15,19 +15,13 @@ export async function insertCart(user_id, sku_id) {
       };
     }
 
-    const result = await runQuery(async (supabase) => {
-      const { error } = await supabase
-        .from('user_preference')
-        .upsert({
-          user_id,
-          sku_id,
-          cart: true,
-        });
-
-      if (error) {
-        throw new Error(error.message);
-      }
-    });
+    const query = `
+      INSERT INTO ${tables.userPreference} (user_id, sku_id, cart)
+      VALUES ($1, $2, true)
+      ON CONFLICT (user_id, sku_id)
+      DO UPDATE SET cart = true
+    `
+    await runQuery(query, [user_id, sku_id]);
 
     return {
       success: true,

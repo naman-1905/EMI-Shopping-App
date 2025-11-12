@@ -1,4 +1,4 @@
-import { runQuery } from '../../utility/db.js';
+import { runQuery, tables } from '../../utility/db.js';
 
 /**
  * Updates an existing address for a user
@@ -17,26 +17,32 @@ export async function updateAddress(addressData, uid) {
       };
     }
 
-    const result = await runQuery(async (supabase) => {
-      const { error } = await supabase
-        .from('user_address')
-        .update({
-          state,
-          city,
-          pincode,
-          landmark,
-          flat_house,
-          phone_number,
-          special_address,
-          receivers_name,
-        })
-        .eq('ad_id', ad_id)
-        .eq('uid', uid);
-
-      if (error) {
-        throw new Error(error.message);
-      }
-    });
+    const query = `
+      UPDATE ${tables.userAddress}
+      SET
+        state = $2,
+        city = $3,
+        pincode = $4,
+        landmark = $5,
+        flat_house = $6,
+        phone_number = $7,
+        special_address = $8,
+        receivers_name = $9
+      WHERE ad_id = $1
+        AND uid = $10
+    `
+    await runQuery(query, [
+      ad_id,
+      state,
+      city,
+      pincode,
+      landmark,
+      flat_house,
+      phone_number,
+      special_address,
+      receivers_name,
+      uid,
+    ]);
 
     return {
       success: true,

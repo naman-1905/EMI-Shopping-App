@@ -1,4 +1,4 @@
-import { runQuery } from '../../utility/db.js';
+import { runQuery, tables } from '../../utility/db.js';
 
 /**
  * Retrieves all SKU information for SKUs with special tags.
@@ -6,25 +6,25 @@ import { runQuery } from '../../utility/db.js';
  */
 export async function getAllSpecialTagSkus() {
   try {
-    const result = await runQuery(async (supabase) => {
-      const { data, error } = await supabase
-        .from('sku_info')
-        .select(`
-          *,
-          sku_image_handler(product_image_1_url)
-        `)
-        .eq('special_tag', true);
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      return data || [];
-    });
+    const query = `
+      SELECT
+        si.*,
+        CASE
+          WHEN sih.sku_id IS NULL THEN NULL
+          ELSE json_build_object(
+            'product_image_1_url', sih.product_image_1_url
+          )
+        END AS sku_image_handler
+      FROM ${tables.skuInfo} si
+      LEFT JOIN ${tables.skuImageHandler} sih ON si.sku_id = sih.sku_id
+      WHERE si.special_tag = true
+      ORDER BY si.sku_name
+    `
+    const { rows } = await runQuery(query)
 
     return {
       success: true,
-      data: result,
+      data: rows || [],
       message: 'All SKUs with special tags retrieved successfully.',
     };
   } catch (err) {

@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { runQuery } from '../../utility/db.js';
+import { runQuery, tables } from '../../utility/db.js';
 
 /**
  * Inserts new user data into the database
@@ -39,24 +39,20 @@ export async function insertUserData(userData) {
     const saltRounds = 12;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    const result = await runQuery(async (supabase) => {
-      const { data, error } = await supabase
-        .from('user_info')
-        .insert({
-          first_name: first_name.trim(),
-          last_name: last_name?.trim() || '',
-          email: email.trim().toLowerCase(),
-          password: hashedPassword,
-        })
-        .select('uid, first_name, last_name, email')
-        .single();
+    const normalizedEmail = email.trim().toLowerCase()
+    const query = `
+      INSERT INTO ${tables.userInfo} (first_name, last_name, email, password)
+      VALUES ($1, $2, $3, $4)
+      RETURNING uid, first_name, last_name, email
+    `
+    const { rows } = await runQuery(query, [
+      first_name.trim(),
+      last_name?.trim() || '',
+      normalizedEmail,
+      hashedPassword,
+    ])
 
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      return data;
-    });
+    const result = rows[0]
 
     return {
       success: true,

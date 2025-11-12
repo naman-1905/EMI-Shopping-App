@@ -1,4 +1,4 @@
-import { runQuery } from '../../utility/db.js';
+import { runQuery, tables } from '../../utility/db.js';
 
 /**
  * Inserts a new address for a user
@@ -17,25 +17,31 @@ export async function insertAddress(addressData, uid) {
       };
     }
 
-    const result = await runQuery(async (supabase) => {
-      const { error } = await supabase
-        .from('user_address')
-        .insert({
-          uid,
-          state,
-          city,
-          pincode,
-          landmark,
-          flat_house,
-          phone_number,
-          special_address,
-          receivers_name,
-        });
-
-      if (error) {
-        throw new Error(error.message);
-      }
-    });
+    const query = `
+      INSERT INTO ${tables.userAddress} (
+        uid,
+        state,
+        city,
+        pincode,
+        landmark,
+        flat_house,
+        phone_number,
+        special_address,
+        receivers_name
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+    `
+    await runQuery(query, [
+      uid,
+      state,
+      city,
+      pincode,
+      landmark,
+      flat_house,
+      phone_number,
+      special_address,
+      receivers_name,
+    ]);
 
     return {
       success: true,

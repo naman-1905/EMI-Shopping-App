@@ -3,7 +3,7 @@ import { tokenCheck } from './tokencheck.js';
 import { insertAddress } from './insert_address.js';
 import { updateAddress } from './update_address.js';
 import { deleteAddress } from './delete_address.js';
-import { runQuery } from '../../utility/db.js';
+import { runQuery, tables } from '../../utility/db.js';
 
 const router = express.Router();
 
@@ -25,18 +25,15 @@ router.get('/', async (req, res) => {
   try {
     const uid = req.user.uid;
 
-    const addresses = await runQuery(async (supabase) => {
-      const { data, error } = await supabase
-        .from('user_address')
-        .select('*')
-        .eq('uid', uid);
+    const query = `
+      SELECT *
+      FROM ${tables.userAddress}
+      WHERE uid = $1
+      ORDER BY ad_id
+    `
+    const { rows } = await runQuery(query, [uid])
 
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      return data;
-    });
+    const addresses = rows
 
     res.status(200).json({ success: true, addresses });
   } catch (err) {

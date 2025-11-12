@@ -1,4 +1,4 @@
-import { runQuery } from '../../utility/db.js';
+import { runQuery, tables } from '../../utility/db.js';
 
 /**
  * Searches SKUs based on brand name, description, or SKU name.
@@ -14,24 +14,20 @@ export async function searchSkus(query) {
       };
     }
 
-    const result = await runQuery(async (supabase) => {
-      const { data, error } = await supabase
-        .from('sku_info')
-        .select('*')
-        .or(
-          `sku_brand.ilike.%${query}%,sku_description.ilike.%${query}%,sku_name.ilike.%${query}%`
-        );
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      return data || [];
-    });
+    const sanitizedQuery = query.trim()
+    const likeQuery = `%${sanitizedQuery}%`
+    const sql = `
+      SELECT *
+      FROM ${tables.skuInfo}
+      WHERE sku_brand ILIKE $1
+        OR sku_description ILIKE $1
+        OR sku_name ILIKE $1
+    `
+    const { rows } = await runQuery(sql, [likeQuery])
 
     return {
       success: true,
-      data: result,
+      data: rows,
       message: 'Search results retrieved successfully.',
     };
   } catch (err) {

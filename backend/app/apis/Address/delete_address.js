@@ -1,4 +1,4 @@
-import { runQuery } from '../../utility/db.js';
+import { runQuery, tables } from '../../utility/db.js';
 
 /**
  * Deletes an address for a user
@@ -15,17 +15,12 @@ export async function deleteAddress(ad_id, uid) {
       };
     }
 
-    const result = await runQuery(async (supabase) => {
-      const { error } = await supabase
-        .from('user_address')
-        .delete()
-        .eq('ad_id', ad_id)
-        .eq('uid', uid);
-
-      if (error) {
-        throw new Error(error.message);
-      }
-    });
+    const query = `
+      DELETE FROM ${tables.userAddress}
+      WHERE ad_id = $1
+        AND uid = $2
+    `
+    await runQuery(query, [ad_id, uid]);
 
     return {
       success: true,

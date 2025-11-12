@@ -1,4 +1,4 @@
-import { runQuery } from '../../utility/db.js';
+import { runQuery, tables } from '../../utility/db.js';
 
 /**
  * Cancels an order
@@ -15,19 +15,14 @@ export async function cancelOrder(order_id, reason_of_cancellation) {
       };
     }
 
-    await runQuery(async (supabase) => {
-      const { error } = await supabase
-        .from('order_sku')
-        .update({
-          cancel: true,
-          reason_of_cancellation: reason_of_cancellation || 'No reason provided',
-        })
-        .eq('order_id', order_id);
-
-      if (error) {
-        throw new Error(error.message);
-      }
-    });
+    const query = `
+      UPDATE ${tables.orderSku}
+      SET
+        cancel = true,
+        reason_of_cancellation = $2
+      WHERE order_id = $1
+    `
+    await runQuery(query, [order_id, reason_of_cancellation || 'No reason provided']);
 
     return {
       success: true,

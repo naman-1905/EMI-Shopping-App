@@ -1,4 +1,4 @@
-import { runQuery } from '../../utility/db.js';
+import { runQuery, tables } from '../../utility/db.js';
 
 /**
  * Checks if a user exists with the given email
@@ -14,19 +14,15 @@ export async function checkUserExists(email) {
       };
     }
 
-    const result = await runQuery(async (supabase) => {
-      const { data, error } = await supabase
-        .from('user_info')
-        .select('uid, email, password, first_name, last_name')
-        .eq('email', email.trim().toLowerCase())
-        .single();
-
-      if (error && error.code !== 'PGRST116') { // PGRST116 = No rows found
-        throw new Error(error.message);
-      }
-
-      return data;
-    });
+    const normalizedEmail = email.trim().toLowerCase();
+    const query = `
+      SELECT uid, email, password, first_name, last_name
+      FROM ${tables.userInfo}
+      WHERE email = $1
+      LIMIT 1
+    `
+    const { rows } = await runQuery(query, [normalizedEmail])
+    const result = rows[0] ?? null
 
     return {
       exists: !!result,

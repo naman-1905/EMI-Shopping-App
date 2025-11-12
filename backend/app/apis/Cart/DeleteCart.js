@@ -1,4 +1,4 @@
-import { runQuery } from '../../utility/db.js';
+import { runQuery, tables } from '../../utility/db.js';
 
 /**
  * Removes an item from the user's cart
@@ -15,17 +15,13 @@ export async function deleteCart(user_id, sku_id) {
       };
     }
 
-    const result = await runQuery(async (supabase) => {
-      const { error } = await supabase
-        .from('user_preference')
-        .update({ cart: false })
-        .eq('user_id', user_id)
-        .eq('sku_id', sku_id);
-
-      if (error) {
-        throw new Error(error.message);
-      }
-    });
+    const query = `
+      UPDATE ${tables.userPreference}
+      SET cart = false
+      WHERE user_id = $1
+        AND sku_id = $2
+    `
+    await runQuery(query, [user_id, sku_id]);
 
     return {
       success: true,

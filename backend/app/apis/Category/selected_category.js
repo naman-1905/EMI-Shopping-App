@@ -1,4 +1,4 @@
-import { runQuery } from '../../utility/db.js'
+import { runQuery, tables } from '../../utility/db.js'
 
 /**
  * Retrieves all SKU items for a specific category
@@ -14,26 +14,29 @@ export async function getItemsByCategory(category) {
       }
     }
 
-    const result = await runQuery(async (supabase) => {
-      const { data, error } = await supabase
-        .from('sku_info')
-        .select(`
-          *,
-          sku_image_handler(banner_image_url, featured_image_url, product_image_1_url)
-        `)
-        .eq('category', category.trim())
-
-      if (error) {
-        throw new Error(error.message)
-      }
-
-      return data || []
-    })
+    const sanitizedCategory = category.trim()
+    const query = `
+      SELECT 
+        si.*,
+        CASE 
+          WHEN sih.sku_id IS NULL THEN NULL
+          ELSE json_build_object(
+            'banner_image_url', sih.banner_image_url,
+            'featured_image_url', sih.featured_image_url,
+            'product_image_1_url', sih.product_image_1_url
+          )
+        END AS sku_image_handler
+      FROM ${tables.skuInfo} si
+      LEFT JOIN ${tables.skuImageHandler} sih ON si.sku_id = sih.sku_id
+      WHERE si.category = $1
+      ORDER BY si.sku_name
+    `
+    const { rows } = await runQuery(query, [sanitizedCategory])
 
     return {
       success: true,
-      data: result,
-      message: `Items for category "${category}" retrieved successfully`,
+      data: rows,
+      message: `Items for category "${sanitizedCategory}" retrieved successfully`,
     }
   } catch (err) {
     console.error(`Error fetching items for category "${category}":`, err.message)

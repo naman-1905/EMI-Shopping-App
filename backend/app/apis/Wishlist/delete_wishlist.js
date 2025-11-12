@@ -1,4 +1,4 @@
-import { runQuery } from '../../utility/db.js';
+import { runQuery, tables } from '../../utility/db.js';
 
 async function deleteWishlist(userId, skuId) {
   try {
@@ -9,17 +9,13 @@ async function deleteWishlist(userId, skuId) {
       };
     }
 
-    await runQuery(async (supabase) => {
-      const { error } = await supabase
-        .from('user_preference')
-        .update({ wishlist: false })
-        .eq('user_id', userId)
-        .eq('sku_id', skuId);
-
-      if (error) {
-        throw new Error(error.message);
-      }
-    });
+    const query = `
+      UPDATE ${tables.userPreference}
+      SET wishlist = false
+      WHERE user_id = $1
+        AND sku_id = $2
+    `
+    await runQuery(query, [userId, skuId]);
 
     return { success: true, message: 'Item removed from wishlist successfully' };
   } catch (error) {

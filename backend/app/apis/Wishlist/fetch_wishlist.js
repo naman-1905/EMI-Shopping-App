@@ -1,4 +1,4 @@
-import { runQuery } from '../../utility/db.js';
+import { runQuery, tables } from '../../utility/db.js';
 
 async function fetchWishlist(userId) {
   try {
@@ -9,26 +9,29 @@ async function fetchWishlist(userId) {
       };
     }
 
-    const wishlistItems = await runQuery(async (supabase) => {
-      const { data, error } = await supabase
-        .from('user_preference')
-        .select(`
-          sku_id,
-          sku_info(sku_id, sku_name, price, quantity)
-        `)
-        .eq('user_id', userId)
-        .eq('wishlist', true);
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      return data;
-    });
+    const query = `
+      SELECT
+        up.sku_id,
+        CASE
+          WHEN si.sku_id IS NULL THEN NULL
+          ELSE json_build_object(
+            'sku_id', si.sku_id,
+            'sku_name', si.sku_name,
+            'price', si.price,
+            'quantity', si.quantity
+          )
+        END AS sku_info
+      FROM ${tables.userPreference} up
+      LEFT JOIN ${tables.skuInfo} si ON up.sku_id = si.sku_id
+      WHERE up.user_id = $1
+        AND up.wishlist = true
+      ORDER BY si.sku_name
+    `
+    const { rows } = await runQuery(query, [userId])
 
     return { 
       success: true, 
-      data: wishlistItems || [], 
+      data: rows, 
       message: 'Wishlist items retrieved successfully' 
     };
   } catch (error) {

@@ -1,4 +1,4 @@
-import { runQuery } from '../../utility/db.js';
+import { runQuery, tables } from '../../utility/db.js';
 
 /**
  * Retrieves categories with special tags and their featured images.
@@ -6,25 +6,25 @@ import { runQuery } from '../../utility/db.js';
  */
 export async function getFeaturedCategories() {
   try {
-    const result = await runQuery(async (supabase) => {
-      const { data, error } = await supabase
-        .from('sku_info')
-        .select(`
-          category,
-          sku_image_handler(featured_image_url)
-        `)
-        .eq('special_tag', true);
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      return data || [];
-    });
+    const query = `
+      SELECT DISTINCT ON (si.category)
+        si.category,
+        CASE
+          WHEN sih.sku_id IS NULL THEN NULL
+          ELSE json_build_object(
+            'featured_image_url', sih.featured_image_url
+          )
+        END AS sku_image_handler
+      FROM ${tables.skuInfo} si
+      LEFT JOIN ${tables.skuImageHandler} sih ON si.sku_id = sih.sku_id
+      WHERE si.special_tag = true
+      ORDER BY si.category, si.sku_id
+    `
+    const { rows } = await runQuery(query)
 
     return {
       success: true,
-      data: result,
+      data: rows || [],
       message: 'Featured categories retrieved successfully.',
     };
   } catch (err) {

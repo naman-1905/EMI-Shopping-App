@@ -1,4 +1,4 @@
-import { runQuery } from '../../utility/db.js';
+import { runQuery, tables } from '../../utility/db.js';
 
 /**
  * Creates a new order
@@ -23,36 +23,39 @@ export async function createOrder(uid, ad_id, sku_id, ex_delivery_date, cash, mu
       };
     }
 
-    const result = await runQuery(async (supabase) => {
-      const { data, error } = await supabase
-        .from('order_sku')
-        .insert([
-          {
-            uid,
-            ad_id,
-            sku_id,
-            ex_delivery_date,
-            cash,
-            mutual_fund_emi,
-            emi,
-            planned_month,
-            quantity: quantity || 1,
-            final_price,
-            cancel: false,
-          },
-        ])
-        .select();
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      return data;
-    });
+    const query = `
+      INSERT INTO ${tables.orderSku} (
+        uid,
+        ad_id,
+        sku_id,
+        ex_delivery_date,
+        cash,
+        mutual_fund_emi,
+        emi,
+        planned_month,
+        quantity,
+        final_price,
+        cancel
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,false)
+      RETURNING order_id
+    `
+    const { rows } = await runQuery(query, [
+      uid,
+      ad_id,
+      sku_id,
+      ex_delivery_date,
+      cash,
+      mutual_fund_emi,
+      emi,
+      planned_month,
+      quantity || 1,
+      final_price,
+    ])
 
     return {
       success: true,
-      order_id: result[0]?.order_id,
+      order_id: rows[0]?.order_id,
       message: 'Order created successfully',
     };
   } catch (err) {
