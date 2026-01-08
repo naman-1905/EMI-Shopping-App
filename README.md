@@ -694,15 +694,3 @@ Built with ❤️ using modern web technologies
 - [ ] Multi-currency support
 
 ---
-
-<div align="center">
-
-### 🌟 If you find this project helpful, please give it a star!
-
-[⭐ Star on GitHub](https://github.com/naman-1905/EMI-Shopping-App)
-
-**Last Updated**: November 2024  
-**Version**: 1.0.0  
-**Status**: ✅ Production Ready
-
-</div>
