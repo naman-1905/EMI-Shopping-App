@@ -136,13 +136,7 @@ export default function Navbar() {
           <div className="hidden md:flex items-center justify-between w-full">
             {/* Logo */}
             <Link href="/" className={`flex items-center ${textColor} hover:opacity-80 transition-opacity`}>
-              <Image 
-                src="/1fi_logo.jpg" 
-                alt="1Fi Logo" 
-                width={40} 
-                height={40} 
-                className="object-contain"
-              />
+              LOGO
             </Link>
 
             {/* Center Search Bar - Expanded */}
